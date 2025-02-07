@@ -28,8 +28,7 @@ clear_bss_loop:
 	ldr	x0, =_irq_stack_end /* IRQ, FIQ and exception handler run in EL1h */
 	msr	sp_el1, x0		/* init their stack */
 
-
-1:	ldr	x0, =_user_stack_end	/* main thread runs in EL1t and uses sp_el0 */
+	ldr	x0, =_user_stack_end	/* main thread runs in EL1t and uses sp_el0 */
 	mov	sp, x0			/* init its stack */
 
 	b main
