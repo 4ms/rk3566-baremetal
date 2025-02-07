@@ -1,0 +1,3 @@
+[submodule "anchor"]
+	path = shell/anchor
+	url = https://github.com/bgomberg/anchor
