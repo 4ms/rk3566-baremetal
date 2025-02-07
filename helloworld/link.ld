@@ -1,4 +1,3 @@
-/* OUTPUT_FORMAT("elf64-littlearm", "elf64-littlearm", "elf64-littlearm") */
 OUTPUT_ARCH(aarch64)
 ENTRY(_start)
 

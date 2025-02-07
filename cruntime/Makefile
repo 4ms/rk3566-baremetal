@@ -1,7 +1,6 @@
-SOURCES = startup.s
+SOURCES = startup.s main.cc
 
 INCLUDES = -I.
 
 include ../makefile-common.mk
-
 
