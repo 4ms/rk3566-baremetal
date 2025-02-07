@@ -65,6 +65,15 @@ struct Uart {
 namespace HW
 {
 
+static inline volatile RockchipPeriph::Uart *const UART0 = reinterpret_cast<RockchipPeriph::Uart *>(0xfdd50000);
+static inline volatile RockchipPeriph::Uart *const UART1 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe650000);
 static inline volatile RockchipPeriph::Uart *const UART2 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe660000);
+static inline volatile RockchipPeriph::Uart *const UART3 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe670000);
+static inline volatile RockchipPeriph::Uart *const UART4 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe680000);
+static inline volatile RockchipPeriph::Uart *const UART5 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe690000);
+static inline volatile RockchipPeriph::Uart *const UART6 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe6a0000);
+static inline volatile RockchipPeriph::Uart *const UART7 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe6b0000);
+static inline volatile RockchipPeriph::Uart *const UART8 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe6c0000);
+static inline volatile RockchipPeriph::Uart *const UART9 = reinterpret_cast<RockchipPeriph::Uart *>(0xfe6d0000);
 
-};
+}; // namespace HW
