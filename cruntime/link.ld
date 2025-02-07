@@ -68,7 +68,6 @@ SECTIONS
         . = ALIGN(8);
     } > ROM
 
-
     .data : 
     {
         . = ALIGN(8);
@@ -77,7 +76,7 @@ SECTIONS
         *(.data*)
         . = ALIGN(8);
         _data_end = .;
-    } > RAM
+    } > ROM
 
     .bss : {
         _bss_start = .;
