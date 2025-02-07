@@ -1,4 +1,8 @@
-SOURCES = startup.s main.cc
+SOURCES = startup.s 
+SOURCES += main.cc
+SOURCES += init.cc
+SOURCES += test_init.cc
+SOURCES += serial.cc
 
 INCLUDES = -I.
 

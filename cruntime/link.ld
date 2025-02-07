@@ -3,7 +3,7 @@ ENTRY(_start)
 
 MEMORY
 {
-    ROM (rx) : ORIGIN = 0x02080000, LENGTH = 223M
+    ROM (rwx) : ORIGIN = 0x02080000, LENGTH = 223M
     RAM (rwx): ORIGIN = 0x10000000, LENGTH = 512M
 }
 
@@ -12,6 +12,7 @@ __HEAP_SIZE = 256M;
 SECTIONS
 {
     .text : {
+		*(.start)
         *(.vector_table)
         *(.text)
         *(.text*)
@@ -51,20 +52,20 @@ SECTIONS
     .init_array :
     {
         . = ALIGN(8);
-        PROVIDE_HIDDEN (__init_array_start = .);
+        PROVIDE_HIDDEN (_init_array_start = .);
         KEEP (*(SORT(.init_array.*)))
         KEEP (*(.init_array*))
-        PROVIDE_HIDDEN (__init_array_end = .);
+        PROVIDE_HIDDEN (_init_array_end = .);
         . = ALIGN(8);
     } > ROM
 
     .fini_array :
     {
         . = ALIGN(8);
-        PROVIDE_HIDDEN (__fini_array_start = .);
+        PROVIDE_HIDDEN (_fini_array_start = .);
         KEEP (*(SORT(.fini_array.*)))
         KEEP (*(.fini_array*))
-        PROVIDE_HIDDEN (__fini_array_end = .);
+        PROVIDE_HIDDEN (_fini_array_end = .);
         . = ALIGN(8);
     } > ROM
 
@@ -122,12 +123,12 @@ SECTIONS
 
 
   /* Remove information from the compiler libraries */
-  /DISCARD/ :
-  {
-    libc.a ( * )
-    libm.a ( * )
-    libgcc.a ( * )
-  }
+  /* /DISCARD/ : */
+  /* { */
+  /*   libc.a ( * ) */
+  /*   libm.a ( * ) */
+  /*   libgcc.a ( * ) */
+  /* } */
 
     .ARM.attributes 0 : { *(.ARM.attributes) }
 }

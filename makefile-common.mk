@@ -27,29 +27,29 @@ CFLAGS = -g2 \
 		 $(ARCH_CFLAGS) \
 		 $(MCU) \
 		 $(INCLUDES) \
-		 -fdata-sections -ffunction-sections \
-		 -nostartfiles \
 		 $(EXTRACFLAGS)\
+		 -fdata-sections -ffunction-sections \
 
+		# -ffreestanding \
+			
 CXXFLAGS = $(CFLAGS) \
 		-std=c++23 \
 		-fno-rtti \
 		-fno-exceptions \
 		-fno-unwind-tables \
-		-ffreestanding \
 		-fno-threadsafe-statics \
 		-Wall \
 		 $(EXTRACXXFLAGS) \
 
-LINK_STDLIB ?= -nostdlib
+# LINK_STDLIB ?= -nostdlib
 
-LFLAGS = -Wl,--gc-sections \
-		 -Wl,-Map,$(BUILDDIR)/$(BINARYNAME).map,--cref \
+LFLAGS = -Wl,-Map,$(BUILDDIR)/$(BINARYNAME).map,--cref \
 		 $(MCU)  \
 		 -T $(LINKSCR) \
 		 $(LINK_STDLIB) \
-		 -nostartfiles \
 		 $(EXTRALDFLAGS) \
+		 -nostartfiles \
+		 -Wl,--gc-sections \
 
 DEPFLAGS = -MMD -MP -MF $(OBJDIR)/$(basename $<).d
 
