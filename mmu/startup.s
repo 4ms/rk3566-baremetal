@@ -74,32 +74,40 @@ _start:					/* normally entered from armstub8 in EL2 after boot */
 	orr x1, x1, #0x0004    /* C: bit 2  Cacheability control for data accesses at EL1 and EL0 */
 	msr	sctlr_el2, x1
 
-	mov	x1, #3 << 20
-	msr	cpacr_el1, x1		/* Don't trap FP/SIMD at EL1 or EL0*/
+	mrs x1, cpacr_el1
+	orr	x1, x1, #3 << 20        /* FPEN bits: don't trap FPU at EL1 or EL0 */
+	orr	x1, x1, #3 << 22        /* Don't trap SIMD at EL1 or EL0*/
+	msr	cpacr_el1, x1
+	isb
+
+	mrs x1, cptr_el2
+	bic x0, x0, #(0x3 << 20)  // Ensure EL2 does not block FPU access
+	msr cptr_el2, x0
+	isb
+
+
+
 
 	mrs x1, sctlr_el1
 	orr x1, x1, #0x1000    /* I: bit 12 instruction cache */
 	orr x1, x1, #0x0001    /* M: bit 1  MMU enable for EL1 and EL0  */
 	orr x1, x1, #0x0004    /* C: bit 2  Cacheability control for data accesses at EL1 and EL0 */
+	//bic x1, x1, #1 << 21   /* ?DN: enable fpu? */
 	msr	sctlr_el1, x1
 
 	ldr x0, =UART_THR
-	mov x1, #68
+	mov x1, #68 //D
 	str x1, [x0]
 
-
 /*
-	mov	x1, #0x3c4
-	msr	spsr_el2, x1	EL1_SP0 | D | A | I | F 
-*/
-
-	adr	x1, 1f
-	msr	elr_el2, x1
-	eret
-1:
+ 	adr	x1, 1f
+ 	msr	elr_el2, x1
+ 	eret
+ 1:
+ */
 
 	ldr x0, =UART_THR
-	mov x1, #69
+	mov x1, #69 //E
 	str x1, [x0]
 
 	bl clear_bss
