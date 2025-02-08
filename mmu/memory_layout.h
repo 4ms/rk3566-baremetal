@@ -1,2 +1,5 @@
 #define MEMORY_START_DMA 0x3080'0000
 #define MEMORY_END_DMA 0x4000'0000
+
+// Does our board have 1GB?
+#define MEMORY_SIZE 0x4000'0000

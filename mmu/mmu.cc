@@ -1,6 +1,6 @@
 #include "circle/armv8mmu.h"
 #include "circle/synchronize64.h"
-
+#include "memory_layout.h"
 #include <cstdint>
 #include <cstring>
 
@@ -8,11 +8,6 @@
 #define ATTRINDX_NORMAL 0
 #define ATTRINDX_DEVICE 1
 #define ATTRINDX_COHERENT 2
-
-// Does our board have 1GB?
-#define MEMORY_SIZE 0x4000'0000
-
-#include "memory_layout.h"
 
 // We create one level 2 (first lookup level) translation table with 3 table
 // entries (total 1.5GB) which point to a level 3 (final lookup level) translation
