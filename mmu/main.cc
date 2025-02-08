@@ -1,4 +1,3 @@
-#include "aarch64.h"
 #include "gpio.hh"
 #include "memory_layout.h"
 #include "mmu.h"
@@ -8,12 +7,6 @@
 int main()
 {
 	using namespace RockchipPeriph;
-
-	print('\n');
-	auto el = get_current_el();
-	print("Current EL: ");
-	print((int)el);
-	print('\n');
 
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
@@ -37,6 +30,7 @@ int main()
 	HW::GPIO0->data_H = Gpio::masked_clr_bit(Gpio::C(5));
 
 	print("Writing 1MB coherent memory\n");
+	// also takes ~1ms
 	HW::GPIO0->data_H = Gpio::masked_set_bit(Gpio::C(5));
 	{
 		uint32_t *addr = reinterpret_cast<uint32_t *>(MEMORY_START_DMA);
