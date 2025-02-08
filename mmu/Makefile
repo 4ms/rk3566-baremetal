@@ -4,6 +4,7 @@ SOURCES += mmu.cc
 
 SOURCES += ../drivers/init.cc
 SOURCES += ../drivers/serial.cc
+SOURCES += ../drivers/print.cc
 
 INCLUDES  = -I.
 INCLUDES += -I../drivers

@@ -5,6 +5,7 @@ SOURCES += mmu.cc
 SOURCES += ../lib/armv8-bare-metal/aarch64.c
 SOURCES += ../drivers/init.cc
 SOURCES += ../drivers/serial.cc
+SOURCES += ../drivers/print.cc
 
 INCLUDES  = -I.
 INCLUDES += -I../drivers

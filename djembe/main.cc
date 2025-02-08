@@ -2,7 +2,7 @@
 #include "djembe.hh"
 #include "gpio.hh"
 #include "mmu.h"
-#include "serial.hh"
+#include "print.hh"
 #include "uart.hh"
 
 int main()

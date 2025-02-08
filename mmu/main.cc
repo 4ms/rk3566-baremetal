@@ -1,7 +1,7 @@
 #include "gpio.hh"
 #include "memory_layout.h"
 #include "mmu.h"
-#include "serial.hh"
+#include "print.hh"
 #include "uart.hh"
 
 int main()
