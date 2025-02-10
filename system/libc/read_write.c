@@ -1,10 +1,12 @@
 #include "serial.hh"
 
 int _read (int fd, char *buf, int count) {
-    *buf = rk_getc();
+    if (!rk_hasc()) {
+        return 0;
+    }
+    *buf = rk_getc_raw();
     return 1;
 }
-
 
 int _write(int file, char *ptr, int len) {
   (void)file;

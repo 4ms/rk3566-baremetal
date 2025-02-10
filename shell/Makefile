@@ -12,6 +12,7 @@ INCLUDES += -I../drivers
 INCLUDES += -Ianchor/console/include
 
 EXTRA_ARCH_CFLAGS = -DCONSOLE_RETURN_KEY=13
+EXTRA_ARCH_CFLAGS += -DCONSOLE_HISTORY
 
 # ignore this static assert failure.
 include ../makefile-common.mk
