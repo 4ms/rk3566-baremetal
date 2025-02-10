@@ -4,37 +4,28 @@
 #include "mmu.h"
 #include "print.hh"
 #include "uart.hh"
+#include <cstdio>
 
 int main()
 {
 	using namespace RockchipPeriph;
 
-	print('\n');
+	printf("\n");
 	auto el = get_current_el();
-	print("Current EL: ");
-	print((int)el);
-	print('\n');
+	printf("Current EL: %d\n", el);
 
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
 
-	print("Enabling MMU:\n");
+	printf("Enabling MMU:\n");
 	enable_mmu();
 
 	float x = 1.23f;
 	float y = 2.45f;
 	float z = std::pow(y, x);
-	float a = z * 1000.f;
-	int b = (int)a;
-	print("2.45^1.23 = ");
-	print(b / 1000);
-	print('.');
-	print((b / 100) % 10);
-	print((b / 10) % 10);
-	print(b % 10);
-	print("\n");
+	printf("2.45^1.23 = %g\n", z);
 
-	print("Playing djembe:\n");
+	printf("Playing djembe:\n");
 	// 32ms to process 1000ms of sound
 	MetaModule::DjembeCore dj;
 	float in[48'000];
@@ -55,7 +46,7 @@ int main()
 	}
 	HW::GPIO0->data_H = Gpio::masked_clr_bit(Gpio::C(5));
 
-	print("Writing 1MB memory:\n");
+	printf("Writing 1MB memory:\n");
 	// takes 1ms
 	HW::GPIO0->data_H = Gpio::masked_set_bit(Gpio::C(5));
 	{
@@ -73,15 +64,14 @@ int main()
 	for (auto f : out) {
 		int x = f * 255.f;
 		if (f != 0.0f) {
-			print(x);
-			print(',');
+			printf("%d,", x);
 			if ((++i % 20) == 0)
-				print('\n');
+				printf("\n");
 		}
 	}
-	print('\n');
+	printf("\n");
 
-	print("Toggling GPIO0 C5:\n");
+	printf("Toggling GPIO0 C5:\n");
 
 	uint32_t reps = 10;
 	while (reps--) {
@@ -90,7 +80,7 @@ int main()
 		HW::GPIO0->data_H = Gpio::masked_clr_bit(Gpio::C(5));
 	}
 
-	print("Done\n");
+	printf("Done\n");
 	while (true)
 		;
 }
