@@ -14,6 +14,7 @@ INCLUDES += -Ianchor/console/include
 EXTRACXXFLAGS = -D_Static_assert=static_assert
 
 EXTRA_ARCH_CFLAGS = -DCONSOLE_RETURN_KEY=13
+EXTRA_ARCH_CFLAGS += -DCONSOLE_HISTORY
 
 # ignore this static assert failure.
 include ../makefile-common.mk
