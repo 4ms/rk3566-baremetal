@@ -1,11 +1,11 @@
 SOURCES = startup.s 
 SOURCES += main.cc
-SOURCES += ../drivers/serial.cc
 SOURCES += anchor/console/src/console.c
-SOURCES += libc/read_write.c
-SOURCES += libc/sbrk.cc
+SOURCES += ../drivers/serial.cc
 SOURCES += ../drivers/init.cc
-SOURCES += libc/libc_stub.c
+SOURCES += ../libc/read_write.c
+SOURCES += ../libc/sbrk.cc
+SOURCES += ../libc/libc_stub.c
 
 INCLUDES  = -I.
 INCLUDES += -I../drivers
