@@ -3,15 +3,13 @@ SOURCES += main.cc
 SOURCES += anchor/console/src/console.c
 SOURCES += ../drivers/serial.cc
 SOURCES += ../drivers/init.cc
-SOURCES += ../libc/read_write.c
-SOURCES += ../libc/sbrk.cc
-SOURCES += ../libc/libc_stub.c
+SOURCES += ../system/libc/read_write.c
+SOURCES += ../system/libc/sbrk.cc
+SOURCES += ../system/libc/libc_stub.c
 
 INCLUDES  = -I.
 INCLUDES += -I../drivers
 INCLUDES += -Ianchor/console/include
-
-EXTRACXXFLAGS = -D_Static_assert=static_assert
 
 EXTRA_ARCH_CFLAGS = -DCONSOLE_RETURN_KEY=13
 
