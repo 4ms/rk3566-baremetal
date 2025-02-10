@@ -6,9 +6,9 @@ SOURCES += ../lib/armv8-bare-metal/aarch64.c
 SOURCES += ../drivers/init.cc
 SOURCES += ../drivers/serial.cc
 SOURCES += ../drivers/print.cc
-SOURCES += ../libc/read_write.c
-SOURCES += ../libc/libc_stub.c
-SOURCES += ../libc/sbrk.cc
+SOURCES += ../system/libc/read_write.c
+SOURCES += ../system/libc/libc_stub.c
+SOURCES += ../system/libc/sbrk.cc
 
 INCLUDES  = -I.
 INCLUDES += -I../drivers
