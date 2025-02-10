@@ -7,7 +7,7 @@
 /*                                                                    */
 /**********************************************************************/
 #if !defined(_AARCH64_H)
-#define  _AARCH64_H 
+#define _AARCH64_H
 
 #include <stdint.h>
 
@@ -16,28 +16,28 @@ extern "C" {
 #endif
 
 /* CurrentEL, Current Exception Level */
-#define CURRENT_EL_MASK		0x3
-#define CURRENT_EL_SHIFT	2
+#define CURRENT_EL_MASK 0x3
+#define CURRENT_EL_SHIFT 2
 
 /* DAIF, Interrupt Mask Bits */
-#define DAIF_DBG_BIT		(1<<3)	/* Debug mask bit */
-#define DAIF_ABT_BIT		(1<<2)	/* Asynchronous abort mask bit */
-#define DAIF_IRQ_BIT		(1<<1)	/* IRQ mask bit */
-#define DAIF_FIQ_BIT		(1<<0)	/* FIQ mask bit */
+#define DAIF_DBG_BIT (1 << 3) /* Debug mask bit */
+#define DAIF_ABT_BIT (1 << 2) /* Asynchronous abort mask bit */
+#define DAIF_IRQ_BIT (1 << 1) /* IRQ mask bit */
+#define DAIF_FIQ_BIT (1 << 0) /* FIQ mask bit */
 
 /*
  * Interrupt flags
  */
-#define AARCH64_DAIF_FIQ	(1)		/* FIQ */
-#define AARCH64_DAIF_IRQ	(2)		/* IRQ */
+#define AARCH64_DAIF_FIQ (1) /* FIQ */
+#define AARCH64_DAIF_IRQ (2) /* IRQ */
 
-/* Timer */  
-#define CNTV_CTL_ENABLE		(1 << 0)	/* Enables the timer */	
-#define CNTV_CTL_IMASK		(1 << 1)	/* Timer interrupt mask bit */
-#define CNTV_CTL_ISTATUS	(1 << 2)	/* The status of the timer interrupt. This bit is read-only */
+/* Timer */
+#define CNTV_CTL_ENABLE (1 << 0)  /* Enables the timer */
+#define CNTV_CTL_IMASK (1 << 1)	  /* Timer interrupt mask bit */
+#define CNTV_CTL_ISTATUS (1 << 2) /* The status of the timer interrupt. This bit is read-only */
 
 /* Wait For Interrupt */
-#define wfi()		asm volatile("wfi" : : : "memory")
+#define wfi() asm volatile("wfi" : : : "memory")
 
 /* PSTATE and special purpose register access functions */
 uint32_t raw_read_current_el(void);
@@ -60,6 +60,7 @@ uint32_t raw_read_isr_el1(void);
 uint64_t raw_read_rvbar_el1(void);
 void raw_write_rvbar_el1(uint64_t rvbar_el1);
 uint64_t raw_read_vbar_el1(void);
+uint64_t raw_read_vbar_el2(void);
 void raw_write_vbar_el1(uint64_t vbar_el1);
 
 /* CNTV_CTL_EL0, Counter-timer Virtual Timer Control register */
@@ -78,4 +79,4 @@ void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0);
 #ifdef __cplusplus
 }
 #endif
-#endif  /*  _AARCH64_H   */
+#endif /*  _AARCH64_H   */
