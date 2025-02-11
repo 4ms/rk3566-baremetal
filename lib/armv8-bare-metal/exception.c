@@ -76,6 +76,8 @@ void irq_handle(exception_frame *exc) {
 	// psw_restore_interrupt(&psw);
 }
 
+char rk_getc();
+
 void common_trap_handler(exception_frame *exc) {
 	printf("\nException Handler! (");
 	// handle_exception(exc);
@@ -83,8 +85,9 @@ void common_trap_handler(exception_frame *exc) {
 	if ((exc->exc_type & 0xff) == AARCH64_EXC_SYNC_SPX) {
 		printf("AARCH64_EXC_SYNC_SPX)\n");
 		handle_exception(exc);
-		while (1)
+		while (!rk_getc())
 			;
+		asm("b main");
 		/*
 				ti_update_preempt_count(ti, THR_EXCCNT_SHIFT, 1);
 				enable_irq();
