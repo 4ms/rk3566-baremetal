@@ -8,10 +8,7 @@ SOURCES += ../lib/armv8-bare-metal/exception.c
 SOURCES += ../lib/armv8-bare-metal/gic_v3.c
 
 SOURCES += ../drivers/init.cc
-SOURCES += ../drivers/console.cc
 SOURCES += ../drivers/serial.cc
-
-SOURCES += ../lib/anchor-console/src/console.c
 
 SOURCES += ../system/libc/read_write.c
 SOURCES += ../system/libc/libc_stub.c
@@ -21,9 +18,15 @@ INCLUDES  = -I.
 INCLUDES += -I../drivers
 INCLUDES += -I../lib
 INCLUDES += -I../system
-INCLUDES += -I../lib/anchor-console/include
 
 OPTFLAG = -O0
+
+# Shell:
+EXTRA_ARCH_CFLAGS = -DCONSOLE_RETURN_KEY=13
+EXTRA_ARCH_CFLAGS += -DCONSOLE_HISTORY
+SOURCES += ../drivers/console.cc
+SOURCES += ../lib/anchor-console/src/console.c
+INCLUDES += -I../lib/anchor-console/include
 
 include ../makefile-common.mk
 

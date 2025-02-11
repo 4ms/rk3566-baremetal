@@ -109,17 +109,12 @@ int main() {
 	while (true) {
 		Console::process();
 
-		// volatile int dly = 24'000'000;
-		// while (dly--)
-		// 	;
 		// wfi();
 		// printf("INT\n");
+
 		if (HW::GPIO4->intr_status & (1 << 16)) {
 			printf("Clear\n");
 			HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
 		}
-		// else
-		// 	printf(
-		// 		"%08x %08x\n", HW::GPIO4->intr_status, HW::GPIO4->intr_rawstatus); // pin C0 =  bit 0x0001'0000 = bit 16
 	}
 }
