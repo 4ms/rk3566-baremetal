@@ -1,9 +1,8 @@
 #include "armv8-bare-metal/aarch64.h"
 #include "armv8-bare-metal/gic_v3.h"
 #include "gpio.hh"
-#include "mmu.h"
-#include "print.hh"
-#include "uart.hh"
+// #include "mmu.h"
+#include "console.hh"
 #include <cstdio>
 
 constexpr uint64_t SystemCntFreq = 25'000'000;
@@ -22,6 +21,8 @@ int main() {
 
 	printf("Enabling IRQ:\n");
 	gic_v3_initialize();
+
+	Console::init();
 
 	printf("Config GPIO0 IRQ:\n");
 	gicd_config(GPIO4IRQ, GIC_GICD_ICFGR_EDGE);
@@ -106,10 +107,11 @@ int main() {
 		   HW::GPIO4->intr_rawstatus); // pin C0 =  bit 0x0001'0000 = bit 16
 
 	while (true) {
+		Console::process();
 
-		volatile int dly = 24'000'000;
-		while (dly--)
-			;
+		// volatile int dly = 24'000'000;
+		// while (dly--)
+		// 	;
 		// wfi();
 		// printf("INT\n");
 		if (HW::GPIO4->intr_status & (1 << 16)) {

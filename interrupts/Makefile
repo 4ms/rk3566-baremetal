@@ -2,14 +2,17 @@ SOURCES = boot.S
 SOURCES += ../lib/armv8-bare-metal/vector.S
 
 SOURCES += main.cc
-SOURCES += ../system/mmu.cc
 
 SOURCES += ../lib/armv8-bare-metal/aarch64.c
 SOURCES += ../lib/armv8-bare-metal/exception.c
 SOURCES += ../lib/armv8-bare-metal/gic_v3.c
 
 SOURCES += ../drivers/init.cc
+SOURCES += ../drivers/console.cc
 SOURCES += ../drivers/serial.cc
+
+SOURCES += ../lib/anchor-console/src/console.c
+
 SOURCES += ../system/libc/read_write.c
 SOURCES += ../system/libc/libc_stub.c
 SOURCES += ../system/libc/sbrk.cc
@@ -18,6 +21,7 @@ INCLUDES  = -I.
 INCLUDES += -I../drivers
 INCLUDES += -I../lib
 INCLUDES += -I../system
+INCLUDES += -I../lib/anchor-console/include
 
 OPTFLAG = -O0
 
