@@ -1,10 +1,7 @@
 #include "serial.hh"
 
 int _read (int fd, char *buf, int count) {
-    if (!rk_hasc()) {
-        return 0;
-    }
-    *buf = rk_getc_raw();
+    *buf = rk_getc();
     return 1;
 }
 
