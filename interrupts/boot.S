@@ -24,42 +24,27 @@ _start:					/* normally entered from armstub8 in EL2 after boot */
 	mov	sp, x0			/* init its stack */
 
 
-/* Enable MMU, FPU, SIMD */
-	mrs x1, sctlr_el2
-	orr x1, x1, #0x1000    /* I: bit 12 instruction cache */
-	orr x1, x1, #0x0001    /* M: bit 1  MMU enable for EL1 and EL0  */
-	orr x1, x1, #0x0004    /* C: bit 2  Cacheability control for data accesses at EL1 and EL0 */
-	msr	sctlr_el2, x1
-
-	mrs x1, sctlr_el1
-	orr x1, x1, #0x1000    /* I: bit 12 instruction cache */
-	orr x1, x1, #0x0001    /* M: bit 1  MMU enable for EL1 and EL0  */
-	orr x1, x1, #0x0004    /* C: bit 2  Cacheability control for data accesses at EL1 and EL0 */
-	//bic x1, x1, #1 << 21   /* ?DN: enable fpu? */
-	msr	sctlr_el1, x1
-
-	mrs x1, cpacr_el1
-	orr	x1, x1, #3 << 20        /* FPEN bits: don't trap FPU at EL1 or EL0 */
-	orr	x1, x1, #3 << 22        /* Don't trap SIMD at EL1 or EL0*/
-	msr	cpacr_el1, x1
-	isb
-
+// This makes us hang in clear_bss
+/*
 	mrs x1, cptr_el2
 	bic x0, x0, #(0x3 << 20)  // Ensure EL2 does not block FPU access
 	msr cptr_el2, x0
 	isb
+	*/
 
-/* Initialize Generic Timers */
+/* Initialize Generic Timers 
 	mrs	x0, cnthctl_el2
-	orr	x0, x0, #0x3	/* Enable EL1 access to timers */
+	orr	x0, x0, #0x3	// Enable EL1 access to timers 
 	msr	cnthctl_el2, x0
 	msr	cntvoff_el2, xzr
+	*/
 
-/* Initilize MPID/MPIDR registers */
+/* Initilize MPID/MPIDR registers 
 	mrs	x0, midr_el1
 	mrs	x1, mpidr_el1
 	msr	vpidr_el2, x0
 	msr	vmpidr_el2, x1
+	*/
 
 
 /* Setup vector table */
@@ -82,8 +67,9 @@ _start:					/* normally entered from armstub8 in EL2 after boot */
 	mov x1, #69 //E
 	str x1, [x0]
 
-	bl clear_bss
-	bl init_statics
+	bl __libc_init_array
+	; bl clear_bss
+	; bl init_statics
 
 	b main
 
