@@ -55,11 +55,12 @@ _start:					/* normally entered from armstub8 in EL2 after boot */
 	msr	cnthctl_el2, x0
 	msr	cntvoff_el2, xzr
 
-/* Initilize MPID/MPIDR registers */
+/* Initilize MPID/MPIDR registers 
 	mrs	x0, midr_el1
 	mrs	x1, mpidr_el1
 	msr	vpidr_el2, x0
 	msr	vmpidr_el2, x1
+	*/
 
 
 /* Setup vector table */
