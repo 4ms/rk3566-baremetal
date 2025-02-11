@@ -23,6 +23,11 @@ _start:					/* normally entered from armstub8 in EL2 after boot */
 	ldr	x0, =_user_stack_end	/* main thread runs in EL1t and uses sp_el0 ?? */
 	mov	sp, x0			/* init its stack */
 
+	mrs x0, hcr_el2
+	orr x0, x0, #(1<<5)
+	orr x0, x0, #(1<<4)
+	orr x0, x0, #(1<<3)
+	msr hcr_el2, x0
 
 // This makes us hang in clear_bss
 /*
