@@ -62,8 +62,10 @@ void init() {
 }
 
 void process() {
-	auto c = rk_getc();
-	console_process(reinterpret_cast<uint8_t *>(&c), 1);
+	if (rk_hasc()) {
+		auto c = rk_getc_raw();
+		console_process(reinterpret_cast<uint8_t *>(&c), 1);
+	}
 }
 
 } // namespace Console
