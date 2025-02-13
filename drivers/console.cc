@@ -20,13 +20,25 @@ static void rr_command_handler(const rr_args_t *args) {
 	printf("0x%08x\n", val);
 }
 
+CONSOLE_COMMAND_DEF(w,
+					"Write register w/o readback",
+					CONSOLE_INT_ARG_DEF(reg, "Reg to write"),
+					CONSOLE_INT_ARG_DEF(val, "Value to write"));
+static void w_command_handler(const w_args_t *args) {
+
+	*reinterpret_cast<volatile uint32_t *>(args->reg) = args->val;
+}
+
 CONSOLE_COMMAND_DEF(wr,
 					"Write register",
 					CONSOLE_INT_ARG_DEF(reg, "Reg to write"),
 					CONSOLE_INT_ARG_DEF(val, "Value to write"));
 static void wr_command_handler(const wr_args_t *args) {
 
-	*reinterpret_cast<volatile uint32_t *>(args->reg) = args->val;
+	w_args_t w;
+	w.reg = args->reg;
+	w.val = args->val;
+	w_command_handler(&w);
 	rr_args_t a;
 	a.reg = args->reg;
 	rr_command_handler(&a);
@@ -57,6 +69,7 @@ void init() {
 	console_init(&init_console_);
 	console_command_register(echo);
 	console_command_register(rr);
+	console_command_register(w);
 	console_command_register(wr);
 	console_command_register(wrm);
 }
