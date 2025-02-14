@@ -53,8 +53,10 @@ void disable_serror_exceptions(void);
 void disable_irq(void);
 void disable_fiq(void);
 /* SPSR_EL1, Saved Program Status Register (EL1) */
-uint32_t raw_read_spsr_el1(void);
-void raw_write_spsr_el1(uint32_t spsr_el1);
+uint64_t raw_read_spsr_el1(void);
+void raw_write_spsr_el1(uint64_t spsr_el1);
+uint64_t raw_read_spsr_el2(void);
+void raw_write_spsr_el2(uint64_t spsr_el1);
 /* ISR_EL1, Interrupt Status Register */
 uint32_t raw_read_isr_el1(void);
 uint64_t raw_read_rvbar_el1(void);
@@ -75,6 +77,48 @@ uint64_t raw_read_cntvct_el0(void);
 /* CNTV_CVAL_EL0, Counter-timer Virtual Timer CompareValue register */
 uint64_t raw_read_cntv_cval_el0(void);
 void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0);
+
+uint64_t raw_read_scr_el3(void);
+uint64_t raw_read_hcr_el2(void);
+
+inline uint64_t read_icc_sre_el2() {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_SRE_EL2\n\t" : "=r"(reg) : : "memory");
+	return reg;
+}
+
+inline void write_icc_sre_el2(uint64_t reg) {
+	asm volatile("msr ICC_SRE_EL2, %0\n\t" : : "r"(reg) : "memory");
+}
+
+inline void write_icc_pmr_el1(uint64_t reg) {
+	asm volatile("msr ICC_PMR_EL1, %0\n\t" : : "r"(reg) : "memory");
+}
+inline uint64_t read_icc_pmr_el1() {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_PMR_EL1\n\t" : "=r"(reg) : : "memory");
+	return reg;
+}
+
+inline void write_icc_bpr0_el1(uint64_t reg) {
+	asm volatile("msr ICC_BPR0_EL1, %0\n\t" : : "r"(reg) : "memory");
+}
+
+inline void write_icc_bpr1_el1(uint64_t reg) {
+	asm volatile("msr ICC_BPR1_EL1, %0\n\t" : : "r"(reg) : "memory");
+}
+
+inline uint64_t read_icc_bpr0_el1() {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_BPR0_EL1\n\t" : "=r"(reg) : : "memory");
+	return reg;
+}
+
+inline uint64_t read_icc_bpr1_el1() {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_BPR1_EL1\n\t" : "=r"(reg) : : "memory");
+	return reg;
+}
 
 #ifdef __cplusplus
 }

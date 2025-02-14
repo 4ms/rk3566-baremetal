@@ -81,15 +81,24 @@ void disable_fiq(void) {
 /* SPSR_EL1, Saved Program Status Register (EL1)
 	Holds the saved processor state when an exception is taken to EL1.
 */
-uint32_t raw_read_spsr_el1(void) {
-	uint32_t spsr_el1;
-
+uint64_t raw_read_spsr_el1(void) {
+	uint64_t spsr_el1;
 	__asm__ __volatile__("mrs %0, SPSR_EL1\n\t" : "=r"(spsr_el1) : : "memory");
 	return spsr_el1;
 }
 
-void raw_write_spsr_el1(uint32_t spsr_el1) {
+void raw_write_spsr_el1(uint64_t spsr_el1) {
 	__asm__ __volatile__("msr SPSR_EL1, %0\n\t" : : "r"(spsr_el1) : "memory");
+}
+
+uint64_t raw_read_spsr_el2(void) {
+	uint64_t spsr_el2;
+	__asm__ __volatile__("mrs %0, SPSR_EL2\n\t" : "=r"(spsr_el2) : : "memory");
+	return spsr_el2;
+}
+
+void raw_write_spsr_el2(uint64_t spsr_el2) {
+	__asm__ __volatile__("msr SPSR_EL2, %0\n\t" : : "r"(spsr_el2) : "memory");
 }
 
 /*
@@ -207,4 +216,24 @@ uint64_t raw_read_cntv_cval_el0(void) {
 
 void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0) {
 	__asm__ __volatile__("msr CNTV_CVAL_EL0, %0\n\t" : : "r"(cntv_cval_el0) : "memory");
+}
+
+// SCR
+uint64_t raw_read_scr_el3(void) {
+	uint64_t reg;
+
+	__asm__ __volatile__("mrs %0, SCR_EL3\n\t" : "=r"(reg) : : "memory");
+	return reg;
+}
+
+// Can't do this from EL2 or lower
+void raw_write_scr_el3(uint64_t reg) {
+	__asm__ __volatile__("msr SCR_EL3, %0\n\t" : : "r"(reg) : "memory");
+}
+
+// HCR
+uint64_t raw_read_hcr_el2(void) {
+	uint64_t reg;
+	__asm__ __volatile__("mrs %0, HCR_EL2\n\t" : "=r"(reg) : : "memory");
+	return reg;
 }

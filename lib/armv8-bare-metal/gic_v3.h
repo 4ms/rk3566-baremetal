@@ -17,8 +17,8 @@
 /**********************************************************************/
 #pragma once
 
+#include "../../drivers/rk_gic.h"
 #include "exception.h"
-#include "rk_gic.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -56,25 +56,35 @@ _start:					/* normally entered from armstub8 in EL2 after boot */
 	ldr	x1, =vectors
 	msr	vbar_el2, x1
 
+	// bl __libc_init_array
+	bl clear_bss
+	bl init_statics
+
+
+
+	// Drop to EL1
+ //   msr sctlr_el1, xzr
+ //   mrs x0, hcr_el2
+ //   orr x0, x0, #(1<<31) // RW=1 EL1 Execution state is AArch64.
+ //   msr hcr_el2, x0
+ //   mov x0, #0b00101     // M[4:0]=00101: Aarch64, EL1 with SP_EL1. EL1h must match HCR_EL2.RW.
+ //   msr spsr_el2, x0     // Note DAIF=0000
+
+ //    msr	vbar_el1, x1
+
+ //   ldr x0, =UART_THR
+ //   mov x1, #68 //D
+ //   str x1, [x0]
+
+ //	adr	x1, el1_entry
+ //	msr	elr_el2, x1
+ 	//eret
+
+ el1_entry:
 
 	ldr x0, =UART_THR
-	mov x1, #68 //D
+	mov x1, #70 //F
 	str x1, [x0]
-
-/*
- 	adr	x1, 1f
- 	msr	elr_el2, x1
- 	eret
- 1:
- */
-
-	ldr x0, =UART_THR
-	mov x1, #69 //E
-	str x1, [x0]
-
-	bl __libc_init_array
-	; bl clear_bss
-	; bl init_statics
 
 	b main
 
