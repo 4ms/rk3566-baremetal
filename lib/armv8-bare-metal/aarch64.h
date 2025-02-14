@@ -40,46 +40,62 @@ extern "C" {
 #define wfi() asm volatile("wfi" : : : "memory")
 
 /* PSTATE and special purpose register access functions */
-uint32_t raw_read_current_el(void);
-uint32_t get_current_el(void);
-uint32_t raw_read_daif(void);
+uint32_t raw_read_current_el();
+uint32_t get_current_el();
+uint32_t raw_read_daif();
 void raw_write_daif(uint32_t daif);
-void enable_debug_exceptions(void);
-void enable_serror_exceptions(void);
-void enable_irq(void);
-void enable_fiq(void);
-void disable_debug_exceptions(void);
-void disable_serror_exceptions(void);
-void disable_irq(void);
-void disable_fiq(void);
-/* SPSR_EL1, Saved Program Status Register (EL1) */
-uint64_t raw_read_spsr_el1(void);
-void raw_write_spsr_el1(uint64_t spsr_el1);
-uint64_t raw_read_spsr_el2(void);
-void raw_write_spsr_el2(uint64_t spsr_el1);
+void enable_debug_exceptions();
+void enable_serror_exceptions();
+void enable_irq();
+void enable_fiq();
+void disable_debug_exceptions();
+void disable_serror_exceptions();
+void disable_irq();
+void disable_fiq();
+
 /* ISR_EL1, Interrupt Status Register */
-uint32_t raw_read_isr_el1(void);
-uint64_t raw_read_rvbar_el1(void);
+uint32_t raw_read_isr_el1();
+uint64_t raw_read_rvbar_el1();
 void raw_write_rvbar_el1(uint64_t rvbar_el1);
-uint64_t raw_read_vbar_el1(void);
-uint64_t raw_read_vbar_el2(void);
+uint64_t raw_read_vbar_el1();
+uint64_t raw_read_vbar_el2();
 void raw_write_vbar_el1(uint64_t vbar_el1);
 
 /* CNTV_CTL_EL0, Counter-timer Virtual Timer Control register */
-uint32_t raw_read_cntv_ctl(void);
-void disable_cntv(void);
-void enable_cntv(void);
+uint32_t raw_read_cntv_ctl();
+void disable_cntv();
+void enable_cntv();
 /* CNTFRQ_EL0, Counter-timer Frequency register */
-uint32_t raw_read_cntfrq_el0(void);
+uint32_t raw_read_cntfrq_el0();
 void raw_write_cntfrq_el0(uint32_t cntfrq_el0);
 /* CNTVCT_EL0, Counter-timer Virtual Count register */
-uint64_t raw_read_cntvct_el0(void);
+uint64_t raw_read_cntvct_el0();
 /* CNTV_CVAL_EL0, Counter-timer Virtual Timer CompareValue register */
-uint64_t raw_read_cntv_cval_el0(void);
+uint64_t raw_read_cntv_cval_el0();
 void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0);
 
-uint64_t raw_read_scr_el3(void);
-uint64_t raw_read_hcr_el2(void);
+uint64_t raw_read_scr_el3();
+uint64_t raw_read_hcr_el2();
+
+inline uint64_t read_spsr_el1() {
+	uint64_t spsr_el1;
+	asm volatile("mrs %0, SPSR_EL1\n\t" : "=r"(spsr_el1) : : "memory");
+	return spsr_el1;
+}
+
+inline void write_spsr_el1(uint64_t spsr_el1) {
+	asm volatile("msr SPSR_EL1, %0\n\t" : : "r"(spsr_el1) : "memory");
+}
+
+inline uint64_t read_spsr_el2() {
+	uint64_t spsr_el2;
+	asm volatile("mrs %0, SPSR_EL2\n\t" : "=r"(spsr_el2) : : "memory");
+	return spsr_el2;
+}
+
+inline void write_spsr_el2(uint64_t spsr_el2) {
+	asm volatile("msr SPSR_EL2, %0\n\t" : : "r"(spsr_el2) : "memory");
+}
 
 inline uint64_t read_icc_sre_el2() {
 	uint64_t reg;
@@ -89,35 +105,6 @@ inline uint64_t read_icc_sre_el2() {
 
 inline void write_icc_sre_el2(uint64_t reg) {
 	asm volatile("msr ICC_SRE_EL2, %0\n\t" : : "r"(reg) : "memory");
-}
-
-inline void write_icc_pmr_el1(uint64_t reg) {
-	asm volatile("msr ICC_PMR_EL1, %0\n\t" : : "r"(reg) : "memory");
-}
-inline uint64_t read_icc_pmr_el1() {
-	uint64_t reg;
-	asm volatile("mrs %0, ICC_PMR_EL1\n\t" : "=r"(reg) : : "memory");
-	return reg;
-}
-
-inline void write_icc_bpr0_el1(uint64_t reg) {
-	asm volatile("msr ICC_BPR0_EL1, %0\n\t" : : "r"(reg) : "memory");
-}
-
-inline void write_icc_bpr1_el1(uint64_t reg) {
-	asm volatile("msr ICC_BPR1_EL1, %0\n\t" : : "r"(reg) : "memory");
-}
-
-inline uint64_t read_icc_bpr0_el1() {
-	uint64_t reg;
-	asm volatile("mrs %0, ICC_BPR0_EL1\n\t" : "=r"(reg) : : "memory");
-	return reg;
-}
-
-inline uint64_t read_icc_bpr1_el1() {
-	uint64_t reg;
-	asm volatile("mrs %0, ICC_BPR1_EL1\n\t" : "=r"(reg) : : "memory");
-	return reg;
 }
 
 #ifdef __cplusplus

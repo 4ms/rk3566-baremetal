@@ -59,7 +59,7 @@ static void init_gicd(void) {
 	int32_t i, regs_nr;
 
 	// uart_puts("init_gicd()\n");
-	/* Diable distributor */
+	/* Disable distributor */
 	*REG_GIC_GICD_CTLR = GIC_GICD_CTLR_DISABLE;
 
 	/* Disable all IRQs */

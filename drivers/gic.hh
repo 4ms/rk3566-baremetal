@@ -1,74 +1,48 @@
 #include "rk_gic.h"
 #include <stdint.h>
 
-#define __IM volatile const			  //!< \brief Defines 'read only' structure member permissions
-#define __OM volatile				  //!< \brief Defines 'write only' structure member permissions
-#define __IOM volatile				  //!< \brief Defines 'read / write' structure member permissions
 #define RESERVED(N, T) T RESERVED##N; // placeholder struct members used for "reserved" areas
 
 using IRQn_Type = uint32_t;
 
 // GICD
 struct GICD_t {
-	__IOM uint32_t CTLR;			// Offset: 0x000 (R/W) Distributor Control Register
-	__IM uint32_t TYPER;			// Offset: 0x004 (R/ ) Interrupt Controller Type Register
-	__IM uint32_t IIDR;				// Offset: 0x008 (R/ ) Distributor Implementer Identification Register
-	RESERVED(0, uint32_t)			// TYPER2
-	__IOM uint32_t STATUSR;			// Offset: 0x010 (R/W) Error Reporting Status Register, optional
-	RESERVED(1 [11], uint32_t)		//
-	__OM uint32_t SETSPI_NSR;		// Offset: 0x040 ( /W) Set SPI Register
-	RESERVED(2, uint32_t)			//
-	__OM uint32_t CLRSPI_NSR;		// Offset: 0x048 ( /W) Clear SPI Register
-	RESERVED(3, uint32_t)			//
-	__OM uint32_t SETSPI_SR;		// Offset: 0x050 ( /W) Set SPI, Secure Register
-	RESERVED(4, uint32_t)			//
-	__OM uint32_t CLRSPI_SR;		// Offset: 0x058 ( /W) Clear SPI, Secure Register
-	RESERVED(5 [9], uint32_t)		//
-	__IOM uint32_t IGROUPR[32];		// Offset: 0x080 (R/W) Interrupt Group Registers
-	__IOM uint32_t ISENABLER[32];	// Offset: 0x100 (R/W) Interrupt Set-Enable Registers
-	__IOM uint32_t ICENABLER[32];	// Offset: 0x180 (R/W) Interrupt Clear-Enable Registers
-	__IOM uint32_t ISPENDR[32];		// Offset: 0x200 (R/W) Interrupt Set-Pending Registers
-	__IOM uint32_t ICPENDR[32];		// Offset: 0x280 (R/W) Interrupt Clear-Pending Registers
-	__IOM uint32_t ISACTIVER[32];	// Offset: 0x300 (R/W) Interrupt Set-Active Registers
-	__IOM uint32_t ICACTIVER[32];	// Offset: 0x380 (R/W) Interrupt Clear-Active Registers
-	__IOM uint32_t IPRIORITYR[255]; // Offset: 0x400 (R/W) Interrupt Priority Registers
-	RESERVED(6, uint32_t)			//
-	__IOM uint32_t ITARGETSR[255];	// Offset: 0x800 (R/W) Interrupt Targets Registers
-	RESERVED(7, uint32_t)			//
-	__IOM uint32_t ICFGR[64];		// Offset: 0xC00 (R/W) Interrupt Configuration Registers
-	__IOM uint32_t IGRPMODR[32];	// Offset: 0xD00 (R/W) Interrupt Group Modifier Registers
-	RESERVED(8 [32], uint32_t)		//
-	__IOM uint32_t NSACR[64];		// Offset: 0xE00 (R/W) Non-secure Access Control Registers
-	__OM uint32_t SGIR;				// Offset: 0xF00 ( /W) Software Generated Interrupt Register
-	RESERVED(9 [3], uint32_t)		//
-	__IOM uint32_t CPENDSGIR[4];	// Offset: 0xF10 (R/W) SGI Clear-Pending Registers
-	__IOM uint32_t SPENDSGIR[4];	// Offset: 0xF20 (R/W) SGI Set-Pending Registers
-	RESERVED(10 [5236], uint32_t)	//
-	__IOM uint64_t IROUTER[988];	// Offset: 0x6100(R/W) Interrupt Routing Registers
+	uint32_t CTLR;				  // Offset: 0x000 (R/W) Distributor Control Register
+	const uint32_t TYPER;		  // Offset: 0x004 (R/ ) Interrupt Controller Type Register
+	const uint32_t IIDR;		  // Offset: 0x008 (R/ ) Distributor Implementer Identification Register
+	RESERVED(0, uint32_t)		  // TYPER2
+	uint32_t STATUSR;			  // Offset: 0x010 (R/W) Error Reporting Status Register, optional
+	RESERVED(1 [11], uint32_t)	  //
+	uint32_t SETSPI_NSR;		  // Offset: 0x040 ( /W) Set SPI Register
+	RESERVED(2, uint32_t)		  //
+	uint32_t CLRSPI_NSR;		  // Offset: 0x048 ( /W) Clear SPI Register
+	RESERVED(3, uint32_t)		  //
+	uint32_t SETSPI_SR;			  // Offset: 0x050 ( /W) Set SPI, Secure Register
+	RESERVED(4, uint32_t)		  //
+	uint32_t CLRSPI_SR;			  // Offset: 0x058 ( /W) Clear SPI, Secure Register
+	RESERVED(5 [9], uint32_t)	  //
+	uint32_t IGROUPR[32];		  // Offset: 0x080 (R/W) Interrupt Group Registers
+	uint32_t ISENABLER[32];		  // Offset: 0x100 (R/W) Interrupt Set-Enable Registers
+	uint32_t ICENABLER[32];		  // Offset: 0x180 (R/W) Interrupt Clear-Enable Registers
+	uint32_t ISPENDR[32];		  // Offset: 0x200 (R/W) Interrupt Set-Pending Registers
+	uint32_t ICPENDR[32];		  // Offset: 0x280 (R/W) Interrupt Clear-Pending Registers
+	uint32_t ISACTIVER[32];		  // Offset: 0x300 (R/W) Interrupt Set-Active Registers
+	uint32_t ICACTIVER[32];		  // Offset: 0x380 (R/W) Interrupt Clear-Active Registers
+	uint32_t IPRIORITYR[255];	  // Offset: 0x400 (R/W) Interrupt Priority Registers
+	RESERVED(6, uint32_t)		  //
+	uint32_t ITARGETSR[255];	  // Offset: 0x800 (R/W) Interrupt Targets Registers
+	RESERVED(7, uint32_t)		  //
+	uint32_t ICFGR[64];			  // Offset: 0xC00 (R/W) Interrupt Configuration Registers
+	uint32_t IGRPMODR[32];		  // Offset: 0xD00 (R/W) Interrupt Group Modifier Registers
+	RESERVED(8 [32], uint32_t)	  //
+	uint32_t NSACR[64];			  // Offset: 0xE00 (R/W) Non-secure Access Control Registers
+	uint32_t SGIR;				  // Offset: 0xF00 ( /W) Software Generated Interrupt Register
+	RESERVED(9 [3], uint32_t)	  //
+	uint32_t CPENDSGIR[4];		  // Offset: 0xF10 (R/W) SGI Clear-Pending Registers
+	uint32_t SPENDSGIR[4];		  // Offset: 0xF20 (R/W) SGI Set-Pending Registers
+	RESERVED(10 [5236], uint32_t) //
+	uint64_t IROUTER[988];		  // Offset: 0x6100(R/W) Interrupt Routing Registers
 };
-
-// GICC
-// typedef struct {
-// 	__IOM uint32_t CTLR;		// Offset: 0x000 (R/W) CPU Interface Control Register
-// 	__IOM uint32_t PMR;			// Offset: 0x004 (R/W) Interrupt Priority Mask Register
-// 	__IOM uint32_t BPR;			// Offset: 0x008 (R/W) Binary Point Register
-// 	__IM uint32_t IAR;			// Offset: 0x00C (R/ ) Interrupt Acknowledge Register
-// 	__OM uint32_t EOIR;			// Offset: 0x010 ( /W) End Of Interrupt Register
-// 	__IM uint32_t RPR;			// Offset: 0x014 (R/ ) Running Priority Register
-// 	__IM uint32_t HPPIR;		// Offset: 0x018 (R/ ) Highest Priority Pending Interrupt Register
-// 	__IOM uint32_t ABPR;		// Offset: 0x01C (R/W) Aliased Binary Point Register
-// 	__IM uint32_t AIAR;			// Offset: 0x020 (R/ ) Aliased Interrupt Acknowledge Register
-// 	__OM uint32_t AEOIR;		// Offset: 0x024 ( /W) Aliased End Of Interrupt Register
-// 	__IM uint32_t AHPPIR;		// Offset: 0x028 (R/ ) Aliased Highest Priority Pending Interrupt Register
-// 	__IOM uint32_t STATUSR;		// Offset: 0x02C (R/W) Error Reporting Status Register, optional
-// 	RESERVED(1 [40], uint32_t)	//
-// 	__IOM uint32_t APR[4];		// Offset: 0x0D0 (R/W) Active Priority Register
-// 	__IOM uint32_t NSAPR[4];	// Offset: 0x0E0 (R/W) Non-secure Active Priority Register
-// 	RESERVED(2 [3], uint32_t)	//
-// 	__IM uint32_t IIDR;			// Offset: 0x0FC (R/ ) CPU Interface Identification Register
-// 	RESERVED(3 [960], uint32_t) //
-// 	__OM uint32_t DIR;			// Offset: 0x1000( /W) Deactivate Interrupt Register
-// } GICC_t;
 
 struct GICR_t {
 	uint32_t CTLR;
@@ -77,8 +51,8 @@ struct GICR_t {
 	uint32_t STATUSR;
 	uint32_t WAKER;
 
-	// pad
 	uint32_t skip1[26];
+
 	uint32_t IGROUPR[32];
 	uint32_t ISENABLER[32];
 	uint32_t ICENABLER[32];
@@ -103,12 +77,17 @@ namespace HW
 
 static inline volatile GICR_t *const GICRedist = reinterpret_cast<GICR_t *>(GIC_REDISTRIBUTOR_BASE);
 static inline volatile GICD_t *const GICDistributor = reinterpret_cast<GICD_t *>(GIC_DISTRIBUTOR_BASE);
-// static inline volatile GICC_t *const GICInterface = reinterpret_cast<GICC_t *>(GIC_INTERFACE_BASE);
 
 } // namespace HW
 
-/** \brief  Enable the interrupt distributor using the GIC's CTLR register.
- */
+static inline void GIC_EnableICCAccess(void) {
+	uint64_t reg = 1;
+	asm volatile("msr ICC_SRE_EL2, %0\n\t" : : "r"(reg) : "memory");
+}
+//
+// Groups
+//
+
 static inline void GIC_EnableGroup0(void) {
 	HW::GICDistributor->CTLR |= 1U;
 	uint64_t reg = 0b1;
@@ -127,8 +106,6 @@ static inline void GIC_EnableGroup1S(void) {
 	asm volatile("msr ICC_IGRPEN1_EL1, %0\n\t" : : "r"(reg) : "memory");
 }
 
-/** \brief Disable the interrupt distributor using the GIC's CTLR register.
- */
 static inline void GIC_DisableGroup0(void) {
 	HW::GICDistributor->CTLR &= ~1U;
 }
@@ -139,58 +116,28 @@ static inline void GIC_DisableGroup1S(void) {
 	HW::GICDistributor->CTLR &= ~(1 << 2);
 }
 
-/** \brief Read the GIC's TYPER register.
- * \return GICD_t::TYPER
- */
 static inline uint32_t GIC_DistributorInfo(void) {
 	return (HW::GICDistributor->TYPER);
 }
 
-/** \brief Reads the GIC's IIDR register.
- * \return GICD_t::IIDR
- */
 static inline uint32_t GIC_DistributorImplementer(void) {
 	return (HW::GICDistributor->IIDR);
 }
 
-/** \brief Sets the GIC's ITARGETSR register for the given interrupt.
- * \param [in] IRQn Interrupt to be configured.
- * \param [in] cpu_target CPU interfaces to assign this interrupt to.
- */
 static inline void GIC_SetTarget(IRQn_Type IRQn, uint32_t cpu_target) {
 	uint32_t mask = HW::GICDistributor->ITARGETSR[IRQn / 4U] & ~(0xFFUL << ((IRQn % 4U) * 8U));
 	HW::GICDistributor->ITARGETSR[IRQn / 4U] = mask | ((cpu_target & 0xFFUL) << ((IRQn % 4U) * 8U));
 }
 
-/** \brief Read the GIC's ITARGETSR register.
- * \param [in] IRQn Interrupt to acquire the configuration for.
- * \return GICD_t::ITARGETSR
- */
 static inline uint32_t GIC_GetTarget(IRQn_Type IRQn) {
 	return (HW::GICDistributor->ITARGETSR[IRQn / 4U] >> ((IRQn % 4U) * 8U)) & 0xFFUL;
 }
 
-// static inline void GIC_EnableInterface(void) {
-// 	HW::GICInterface->CTLR |= 1U; // enable interface
-// 	// asm volatile("msr ICC_CTLR_EL1, %0\n\t" : : "r"(reg) : "memory");
-// }
-
-// static inline void GIC_DisableInterface(void) {
-// 	HW::GICInterface->CTLR &= ~1U; // disable distributor
-// }
-
-/** \brief Enables the given interrupt using GIC's ISENABLER register.
- * \param [in] IRQn The interrupt to be enabled.
- */
 static inline void GIC_EnableIRQ(IRQn_Type IRQn) {
 	HW::GICDistributor->ISENABLER[IRQn / 32U] = 1U << (IRQn % 32U);
 	HW::GICRedist->ISENABLER[IRQn / 32U] = 1U << (IRQn % 32U);
 }
 
-/** \brief Get interrupt enable status using GIC's ISENABLER register.
- * \param [in] IRQn The interrupt to be queried.
- * \return 0 - interrupt is not enabled, 1 - interrupt is enabled.
- */
 static inline uint32_t GIC_GetEnableIRQ(IRQn_Type IRQn) {
 	return (HW::GICDistributor->ISENABLER[IRQn / 32U] >> (IRQn % 32U)) & 1UL;
 }
@@ -289,15 +236,25 @@ static inline uint32_t GIC_GetPriority(IRQn_Type IRQn) {
 	return (HW::GICDistributor->IPRIORITYR[IRQn / 4U] >> ((IRQn % 4U) * 8U)) & 0xFFUL;
 }
 
-static inline IRQn_Type GIC_AcknowledgePending(void) {
+static inline IRQn_Type GIC_AcknowledgePendingGroup0(void) {
 	uint64_t reg;
-	__asm__ __volatile__("mrs %0, ICC_IAR_EL2\n\t" : "=r"(reg) : : "memory");
+	__asm__ __volatile__("mrs %0, ICC_IAR0_EL1\n\t" : "=r"(reg) : : "memory");
 	return reg;
 }
 
-static inline void GIC_EndInterrupt(IRQn_Type IRQn) {
+static inline uint64_t GIC_AcknowledgePendingGroup1() {
+	uint64_t reg;
+	__asm__ __volatile__("mrs %0, ICC_IAR1_EL1\n\t" : "=r"(reg) : : "memory");
+	return reg;
+}
+
+static inline void GIC_EndInterruptGroup0(IRQn_Type IRQn) {
 	uint64_t reg = IRQn;
-	asm volatile("msr ICC_EOIR_EL2, %0\n\t" : : "r"(reg) : "memory");
+	asm volatile("msr ICC_EOIR0_EL1, %0\n\t" : : "r"(reg) : "memory");
+}
+
+static inline void GIC_EndInterruptGroup1(uint64_t IRQn) {
+	asm volatile("msr ICC_EOIR1_EL1, %0\n\t" : : "r"(IRQn) : "memory");
 }
 
 static inline void GIC_SetInterfacePriorityMask(uint64_t priority) {

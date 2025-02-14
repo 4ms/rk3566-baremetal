@@ -78,29 +78,6 @@ void disable_fiq(void) {
 	__asm__ __volatile__("msr DAIFSet, %0\n\t" : : "i"(DAIF_FIQ_BIT) : "memory");
 }
 
-/* SPSR_EL1, Saved Program Status Register (EL1)
-	Holds the saved processor state when an exception is taken to EL1.
-*/
-uint64_t raw_read_spsr_el1(void) {
-	uint64_t spsr_el1;
-	__asm__ __volatile__("mrs %0, SPSR_EL1\n\t" : "=r"(spsr_el1) : : "memory");
-	return spsr_el1;
-}
-
-void raw_write_spsr_el1(uint64_t spsr_el1) {
-	__asm__ __volatile__("msr SPSR_EL1, %0\n\t" : : "r"(spsr_el1) : "memory");
-}
-
-uint64_t raw_read_spsr_el2(void) {
-	uint64_t spsr_el2;
-	__asm__ __volatile__("mrs %0, SPSR_EL2\n\t" : "=r"(spsr_el2) : : "memory");
-	return spsr_el2;
-}
-
-void raw_write_spsr_el2(uint64_t spsr_el2) {
-	__asm__ __volatile__("msr SPSR_EL2, %0\n\t" : : "r"(spsr_el2) : "memory");
-}
-
 /*
 ISR_EL1, Interrupt Status Register
 	Shows whether an IRQ, FIQ, or SError interrupt is pending.

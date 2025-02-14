@@ -1,5 +1,3 @@
-#define ASM_FILE   1
-
 .cpu cortex-a55
 
 .section .start
@@ -7,120 +5,58 @@
 .equ UART_THR, 0xfe660000
 
 .global	_start
-_start:					/* normally entered from armstub8 in EL2 after boot */
+_start:					/* normally entered in EL2 from u-boot */
 	ldr x0, =UART_THR   /* Print ABC */
 	mov x1, #65
 	str x1, [x0]
-	mov x1, #66         
+	mov x1, #66		 
 	str x1, [x0]
 	mov x1, #67
 	str x1, [x0]
 
-/* Setup Stack */
-	ldr	x0, =_irq_stack_end /* IRQ, FIQ and exception handler run in EL1h ?? */
-	msr	sp_el1, x0		/* init their stack */
+// Setup Stacks
+	ldr	x0, =_user_stack_end
+	mov	sp, x0
+//	ldr	x0, =_irq_stack_end
+//	msr	sp_el1, x0
 
-	ldr	x0, =_user_stack_end	/* main thread runs in EL1t and uses sp_el0 ?? */
-	mov	sp, x0			/* init its stack */
-
+// Route IRQ, FIQ, and SError to EL2
 	mrs x0, hcr_el2
 	orr x0, x0, #(1<<5)
 	orr x0, x0, #(1<<4)
 	orr x0, x0, #(1<<3)
 	msr hcr_el2, x0
 
-// This makes us hang in clear_bss
-/*
-	mrs x1, cptr_el2
-	bic x0, x0, #(0x3 << 20)  // Ensure EL2 does not block FPU access
-	msr cptr_el2, x0
-	isb
-	*/
-
-/* Initialize Generic Timers 
-	mrs	x0, cnthctl_el2
-	orr	x0, x0, #0x3	// Enable EL1 access to timers 
-	msr	cnthctl_el2, x0
-	msr	cntvoff_el2, xzr
-	*/
-
-/* Initilize MPID/MPIDR registers 
-	mrs	x0, midr_el1
-	mrs	x1, mpidr_el1
-	msr	vpidr_el2, x0
-	msr	vmpidr_el2, x1
-	*/
-
-
-/* Setup vector table */
+// Setup vector table
 	ldr	x1, =vectors
 	msr	vbar_el2, x1
 
+// Enable System Register access (ICC_*_EL2 system registers)
+	mov x1, xzr
+	orr x1, x1, #(1<<3)  // Enable EL1 to use ICC_SER_EL1
+	orr x1, x1, #(1<<2)  // Disable IRQ bypass
+	orr x1, x1, #(1<<1)  // Disable FIQ bypass
+	orr x1, x1, #(1<<0)  // System Register Enable
+	msr icc_sre_el2, x1
+
+
+// Setup c runtime (bss, statics)
+	// Why does calling __libc_init_array make us freeze with first call to printf()?
 	// bl __libc_init_array
+
 	bl clear_bss
-	bl init_statics
-
-
-
-	// Drop to EL1
- //   msr sctlr_el1, xzr
- //   mrs x0, hcr_el2
- //   orr x0, x0, #(1<<31) // RW=1 EL1 Execution state is AArch64.
- //   msr hcr_el2, x0
- //   mov x0, #0b00101     // M[4:0]=00101: Aarch64, EL1 with SP_EL1. EL1h must match HCR_EL2.RW.
- //   msr spsr_el2, x0     // Note DAIF=0000
-
- //    msr	vbar_el1, x1
-
- //   ldr x0, =UART_THR
- //   mov x1, #68 //D
- //   str x1, [x0]
-
- //	adr	x1, el1_entry
- //	msr	elr_el2, x1
- 	//eret
-
- el1_entry:
 
 	ldr x0, =UART_THR
-	mov x1, #70 //F
+	mov x1, #68 //D
 	str x1, [x0]
 
+	bl init_statics
+
+	ldr x0, =UART_THR
+	mov x1, #69 //E
+	str x1, [x0]
+
+
+// Jump to main:
 	b main
 
-
-
-
-.macro armv8_switch_to_el1_m, xreg1, xreg2
-
-	/* Disable coprocessor traps */
-	mov	\xreg1, #0x33ff
-	msr	cptr_el2, \xreg1	/* Disable coprocessor traps to EL2 */
-	msr	hstr_el2, xzr		/* Disable coprocessor traps to EL2 */
-	mov	\xreg1, #3 << 20
-	msr	cpacr_el1, \xreg1	/* Enable FP/SIMD at EL1 */
-
-	/* Initialize HCR_EL2 */
-	mov	\xreg1, #(1 << 31)		/* 64bit EL1 */
-	msr	hcr_el2, \xreg1
-
-	/* SCTLR_EL1 initialization
-	 *
-	 * setting RES1 bits (29,28,23,22,20,11) to 1
-	 * and RES0 bits (31,30,27,21,17,13,10,6) +
-	 * UCI,EE,EOE,WXN,nTWE,nTWI,UCT,DZE,I,UMA,SED,ITD,
-	 * CP15BEN,SA0,SA,C,A,M to 0
-	 */
-	mov	\xreg1, #0x0800
-	movk	\xreg1, #0x30d0, lsl #16
-	msr	sctlr_el1, \xreg1
-
-	/* Return to the EL1_SP1 mode from EL2 */
-	mov	\xreg1, #0x3c4
-	msr	spsr_el2, \xreg1	/* EL1_SP0 | D | A | I | F */
-	adr	\xreg1, 3f
-	msr	elr_el2, \xreg1
-	eret
-3:
-
-	.endm

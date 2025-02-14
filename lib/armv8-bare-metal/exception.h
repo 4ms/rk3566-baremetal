@@ -94,8 +94,9 @@ typedef struct _exception_frame {
 	uint64_t x30;
 } exception_frame;
 
-// static_assert(sizeof(_exception_frame) == 288);
+static_assert(sizeof(_exception_frame) == 288);
 
-void common_trap_handler(exception_frame *_exc);
+extern "C" void common_trap_handler(exception_frame *_exc);
+
 #endif /* !ASM_FILE */
 #endif /* _EXCEPTION_H */
