@@ -54,7 +54,6 @@ void dump_frame(exception_frame *exc) {
 
 void common_trap_handler(exception_frame *exc) {
 	printf("\nException Handler: Type = ");
-	// handle_exception(exc);
 
 	if ((exc->exc_type & 0xff) == AARCH64_EXC_SYNC_SPX) {
 		printf("SError in Aarch64, SPx\n");
@@ -76,10 +75,10 @@ void common_trap_handler(exception_frame *exc) {
 		printf("IRQ in AARCH64, SPx\n");
 		auto irq = GIC_AcknowledgePendingGroup1();
 
-		printf("IRQ# %llu\n", (unsigned long long)irq);
+		printf("IRQ# %lu\n", (unsigned long)irq);
 
+		GIC_DeactivateInterrupt(irq);
 		GIC_EndInterruptGroup1(irq);
-		GIC_EndInterruptGroup0(irq);
 		return;
 	}
 
