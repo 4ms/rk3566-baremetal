@@ -61,23 +61,23 @@
 	/*
 	 * Store (spsr, x0)
 	 */
-	mrs	x21, spsr_el1
+	mrs	x21, spsr_el2
 	stp	x21, x0, [sp, #-16]!
 	/*
 	 * Allocate a room for sp_el0 and store elr
 	 */
-	mrs	x21, elr_el1
+	mrs	x21, elr_el2
 	stp	xzr, x21, [sp, #-16]!
 	/*
 	 * store exception type and esr
 	 */
 	mov	x21, #(\exc_type)
-	mrs	x22, esr_el1
+	mrs	x22, esr_el2
 	stp	x21, x22, [sp, #-16]!
 .endm
 
 .macro store_traped_sp
-	mrs	x21, sp_el0
+	mov x21, sp
 	str	x21, [sp, #EXC_EXC_SP_OFFSET]
 .endm
 
@@ -94,7 +94,7 @@
 
 .macro restore_traped_sp
 	ldr	x21, [sp, #EXC_EXC_SP_OFFSET]
-	msr	sp_el0, x21
+	mov sp, x21
 .endm
 
 .macro restore_trapframe
@@ -107,13 +107,14 @@
 	 * Drop exception stack pointer and restore elr_el1
 	 */
 	ldp	x21, x22, [sp], #16	
-	msr	elr_el1, x22
+	//msr	elr_el2, x22
+	mov x0, x22
 
 	/*
 	 * Retore spsr and x0
 	 */
 	ldp	x21, x0, [sp], #16
-	msr	spsr_el1, x21
+	msr	spsr_el2, x21
 
 	/*
 	 * Restore generic registers from (x29,x30) pair to (x1,x2) pair.
@@ -134,7 +135,7 @@
 	ldp	x27, x28, [sp], #16
 	ldp	x29, x30, [sp], #16
 
-	eret
+	ret
 .endm
 	
 	/*
