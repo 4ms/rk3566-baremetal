@@ -1,13 +1,4 @@
-/* -*- mode: C; coding:utf-8 -*- */
-/**********************************************************************/
-/*  OS kernel sample                                                  */
-/*  Copyright 2014 Takeharu KATO                                      */
-/*                                                                    */
-/*  AArch64 definitions                                               */
-/*                                                                    */
-/**********************************************************************/
-#if !defined(_AARCH64_H)
-#define _AARCH64_H
+#pragma once
 
 #include <stdint.h>
 
@@ -37,7 +28,9 @@ extern "C" {
 #define CNTV_CTL_ISTATUS (1 << 2) /* The status of the timer interrupt. This bit is read-only */
 
 /* Wait For Interrupt */
-#define wfi() asm volatile("wfi" : : : "memory")
+inline void wfi() {
+	asm volatile("wfi" : : : "memory");
+}
 
 /* PSTATE and special purpose register access functions */
 uint32_t raw_read_current_el();
@@ -77,37 +70,6 @@ void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0);
 uint64_t raw_read_scr_el3();
 uint64_t raw_read_hcr_el2();
 
-inline uint64_t read_spsr_el1() {
-	uint64_t spsr_el1;
-	asm volatile("mrs %0, SPSR_EL1\n\t" : "=r"(spsr_el1) : : "memory");
-	return spsr_el1;
-}
-
-inline void write_spsr_el1(uint64_t spsr_el1) {
-	asm volatile("msr SPSR_EL1, %0\n\t" : : "r"(spsr_el1) : "memory");
-}
-
-inline uint64_t read_spsr_el2() {
-	uint64_t spsr_el2;
-	asm volatile("mrs %0, SPSR_EL2\n\t" : "=r"(spsr_el2) : : "memory");
-	return spsr_el2;
-}
-
-inline void write_spsr_el2(uint64_t spsr_el2) {
-	asm volatile("msr SPSR_EL2, %0\n\t" : : "r"(spsr_el2) : "memory");
-}
-
-inline uint64_t read_icc_sre_el2() {
-	uint64_t reg;
-	asm volatile("mrs %0, ICC_SRE_EL2\n\t" : "=r"(reg) : : "memory");
-	return reg;
-}
-
-inline void write_icc_sre_el2(uint64_t reg) {
-	asm volatile("msr ICC_SRE_EL2, %0\n\t" : : "r"(reg) : "memory");
-}
-
 #ifdef __cplusplus
 }
 #endif
-#endif /*  _AARCH64_H   */
