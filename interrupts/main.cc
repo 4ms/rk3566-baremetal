@@ -1,13 +1,14 @@
 #include "armv8-bare-metal/aarch64.h"
 #include "armv8-bare-metal/gic_v3.h"
+
+#include "aarch64_system_reg.hh"
 #include "gpio.hh"
 // #include "mmu.h"
 #include "console.hh"
 #include "gic.hh"
+#include "serial.hh"
 #include <cstdio>
 
-constexpr uint64_t SystemCntFreq = 25'000'000;
-// constexpr uint32_t GPIO0IRQ = 65;
 constexpr uint32_t GPIO4IRQ = 69;
 
 bool BIT(auto reg, unsigned pos) {
@@ -42,9 +43,12 @@ int main() {
 	printf("Read PMR back %u\n", GIC_GetInterfacePriorityMask());
 
 	printf("Set BPR (priority point)\n");
-	GIC_SetBinaryPoint(2); // Group priority: [7:3], Subpriority [2:0]
-	GIC_SetBinaryPointGroup1(3);
+	GIC_SetBinaryPoint(3); // Group priority: [7:3], Subpriority [2:0]
+	GIC_SetBinaryPointGroup1(2);
 	printf("Read back BPR: bpr0:%x bpr1:%x\n", GIC_GetBinaryPoint(), GIC_GetBinaryPointGroup1());
+
+	printf("Set EOI mode to single step\n");
+	GIC_SetEOIModeTwoStep(true);
 
 	auto spsr = read_spsr_el2();
 	printf("spsr = 0x%lx, IRQ masked = %u, FIQ masked = %u\n", spsr, BIT(spsr, 7), BIT(spsr, 6));
@@ -53,36 +57,25 @@ int main() {
 	printf("Enable Group1NS in GICD CTRL\n");
 	GIC_EnableGroup1NS();
 
-	// printf("Not Config GPIO4 IRQ:\n");
-	// gicd_config(GPIO4IRQ, GIC_GICD_ICFGR_LEVEL);
+	printf("Config GPIO4 as level/edge:\n");
+	GIC_SetConfiguration(GPIO4IRQ, GIC_GICD_ICFGR_LEVEL);
 
 	printf("Disable IRQ %u\n", GPIO4IRQ);
 	GIC_DisableIRQ(GPIO4IRQ);
 	printf("readback GPIO4 IRQ enabled bit: %u\n", GIC_GetEnableIRQ(GPIO4IRQ));
 
 	auto pri = 1 << 0;
-	printf("gicd_set_priority: %u\n", pri);
+	printf("Set priority for IRQ %u to %u\n", GPIO4IRQ, pri);
 	GIC_SetPriority(GPIO4IRQ, pri);
 
-	printf("gicd_clear_pending:\n");
+	printf("Clear pending IRQ %u:\n", GPIO4IRQ);
 	GIC_ClearPendingIRQ(GPIO4IRQ);
 
-	printf("gicd_enable_int:\n");
+	printf("Enable IRQ %u:\n", GPIO4IRQ);
 	GIC_EnableIRQ(GPIO4IRQ);
-	printf("readback GPIO4 IRQ enabled bit: %u\n", GIC_GetEnableIRQ(GPIO4IRQ));
 
-	// printf("Setup SGI: enable and set group\n");
-	// HW::GICRedist->ISENABLER[0] = (1 << 2);
-	// HW::GICRedist->IGROUPR[0] = (1 << 2);
-	// auto sgi_group = HW::GICRedist->IGROUPR[0];
-	// printf("SGI group %x\n", sgi_group);
-	// auto sgi_enabled = HW::GICRedist->ISENABLER[0];
-	// printf("SGI enabled %x\n", sgi_enabled);
-
-	// GIC_SendSGI(2, 1, 0);
-
-	auto enabled = reinterpret_cast<uint32_t *>(0xfd400108);
-	auto gic_pending = reinterpret_cast<uint32_t *>(0xfd400208);
+	printf("Set Routing mode to 1\n");
+	GIC_SetRoutingMode(1);
 
 	printf("VBAR_EL2 = %08lx\n", raw_read_vbar_el2());
 	printf("DAIF = %08x\n", raw_read_daif());
@@ -118,7 +111,6 @@ int main() {
 
 	// Enable IRQ
 	enable_irq();
-	enable_fiq();
 	printf("\nEnable IRQ, DAIF = %x\n", raw_read_daif());
 
 	HW::GPIO0->high(Gpio::Port::C, 5);
@@ -130,15 +122,26 @@ int main() {
 
 	printf("\n");
 
-	printf("enabled %d\n", *enabled);
-	printf("pending %d\n", *gic_pending);
-
+	unsigned pp = 0;
 	while (true) {
 		Console::process();
 
-		volatile int dly = 1'000'000;
-		while (dly--)
-			;
+		asm("nop");
+
+		if (pp++ >= 4'000'000) {
+			GIC_SetInterfacePriorityMask(pmr);
+			printf("en: %u stat:%u pri:%u\n",
+				   GIC_GetEnableIRQ(GPIO4IRQ),
+				   GIC_GetIRQStatus(GPIO4IRQ),
+				   GIC_GetPriority(GPIO4IRQ));
+			auto el = get_current_el();
+			printf("Current EL: %d\n", el);
+			pp = 0;
+		}
+
+		// volatile int dly = 1'000'000;
+		// while (dly--)
+		// 	;
 
 		// if (*gic_pending) {
 		// 	printf("pending gpio4 interrupt %08x\n", *gic_pending);
