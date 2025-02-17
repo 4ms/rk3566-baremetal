@@ -1,10 +1,7 @@
 SOURCES = boot.S
-SOURCES += ../lib/armv8-bare-metal/vector.S
-
 SOURCES += main.cc
-
-SOURCES += ../lib/armv8-bare-metal/aarch64.c
-SOURCES += ../lib/armv8-bare-metal/exception.cc
+SOURCES += interrupt_handler.cc
+SOURCES += vector.S
 
 SOURCES += ../drivers/init.cc
 SOURCES += ../drivers/serial.cc
@@ -14,6 +11,8 @@ SOURCES += ../system/libc/libc_stub.c
 SOURCES += ../system/libc/sbrk.cc
 
 INCLUDES  = -I.
+INCLUDES += -I../drivers/mdrivlib
+INCLUDES += -I../drivers/mdrivlib/target/rk3566
 INCLUDES += -I../drivers
 INCLUDES += -I../lib
 INCLUDES += -I../system

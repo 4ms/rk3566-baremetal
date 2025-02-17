@@ -204,6 +204,7 @@ static inline void GIC_ClearPendingIRQ(IRQn_Type IRQn) {
 //
 
 // int_config: Bit 1: 0 - level sensitive, 1 - edge triggered
+enum InterruptConfig : uint32_t { Level = 0, Edge = 2 };
 static inline void GIC_SetConfiguration(IRQn_Type IRQn, uint32_t int_config) {
 	uint32_t icfgr = HW::GICDistributor->ICFGR[IRQn / 16U];
 	uint32_t shift = (IRQn % 16U) << 1U;

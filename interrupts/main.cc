@@ -1,12 +1,7 @@
-#include "armv8-bare-metal/aarch64.h"
-#include "armv8-bare-metal/gic_v3.h"
-
 #include "aarch64_system_reg.hh"
-#include "gpio.hh"
-// #include "mmu.h"
 #include "console.hh"
 #include "gic.hh"
-#include "serial.hh"
+#include "gpio.hh"
 #include <cstdio>
 
 constexpr uint32_t GPIO4IRQ = 69;
@@ -24,14 +19,8 @@ int main() {
 	auto el = get_current_el();
 	printf("Current EL: %d\n", el);
 
-	uint64_t scr = 0x238; // raw_read_scr_el3();
-	printf("Assuming SCR is 0x238 (check printf from TFA)\n");
-	printf("SCR = %lx: IRQ = %u, FIQ = %u\n", scr, BIT(scr, 1), BIT(scr, 2));
-
-	auto hcr = raw_read_hcr_el2();
+	auto hcr = read_hcr_el2();
 	printf("HCR = %lx: IMO = %u, FMO = %u\n", hcr, BIT(hcr, 4), BIT(hcr, 3));
-
-	printf("Enabling IRQ:\n");
 
 	// Wake up
 	printf("Waking CPU GICR:\n");
@@ -58,7 +47,7 @@ int main() {
 	GIC_EnableGroup1NS();
 
 	printf("Config GPIO4 as level/edge:\n");
-	GIC_SetConfiguration(GPIO4IRQ, GIC_GICD_ICFGR_LEVEL);
+	GIC_SetConfiguration(GPIO4IRQ, InterruptConfig::Edge);
 
 	printf("Disable IRQ %u\n", GPIO4IRQ);
 	GIC_DisableIRQ(GPIO4IRQ);
@@ -77,8 +66,8 @@ int main() {
 	printf("Set Routing mode to 1\n");
 	GIC_SetRoutingMode(1);
 
-	printf("VBAR_EL2 = %08lx\n", raw_read_vbar_el2());
-	printf("DAIF = %08x\n", raw_read_daif());
+	printf("VBAR_EL2 = %08lx\n", read_vbar_el2());
+	printf("DAIF = %08x\n", read_daif());
 
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
@@ -111,12 +100,10 @@ int main() {
 
 	// Enable IRQ
 	enable_irq();
-	printf("\nEnable IRQ, DAIF = %x\n", raw_read_daif());
+	printf("\nEnable IRQ, DAIF = %x\n", read_daif());
 
 	HW::GPIO0->high(Gpio::Port::C, 5);
-	volatile int dly = 2'000'000;
-	while (dly--)
-		;
+	printf("Set GPIO0 C5 high\n");
 
 	Console::init();
 
@@ -128,16 +115,16 @@ int main() {
 
 		asm("nop");
 
-		if (pp++ >= 4'000'000) {
-			GIC_SetInterfacePriorityMask(pmr);
-			printf("en: %u stat:%u pri:%u\n",
-				   GIC_GetEnableIRQ(GPIO4IRQ),
-				   GIC_GetIRQStatus(GPIO4IRQ),
-				   GIC_GetPriority(GPIO4IRQ));
-			auto el = get_current_el();
-			printf("Current EL: %d\n", el);
-			pp = 0;
-		}
+		// if (pp++ >= 4'000'000) {
+		// 	GIC_SetInterfacePriorityMask(pmr);
+		// 	printf("en: %u stat:%u pri:%u\n",
+		// 		   GIC_GetEnableIRQ(GPIO4IRQ),
+		// 		   GIC_GetIRQStatus(GPIO4IRQ),
+		// 		   GIC_GetPriority(GPIO4IRQ));
+		// 	auto el = get_current_el();
+		// 	printf("Current EL: %d\n", el);
+		// 	pp = 0;
+		// }
 
 		// volatile int dly = 1'000'000;
 		// while (dly--)
