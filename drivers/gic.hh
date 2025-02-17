@@ -116,6 +116,10 @@ static inline void GIC_DisableGroup1S(void) {
 	HW::GICDistributor->CTLR &= ~(1 << 2);
 }
 
+//
+// IDs
+//
+
 static inline uint32_t GIC_DistributorInfo(void) {
 	return (HW::GICDistributor->TYPER);
 }
@@ -123,6 +127,10 @@ static inline uint32_t GIC_DistributorInfo(void) {
 static inline uint32_t GIC_DistributorImplementer(void) {
 	return (HW::GICDistributor->IIDR);
 }
+
+//
+// Target
+//
 
 static inline void GIC_SetTarget(IRQn_Type IRQn, uint32_t cpu_target) {
 	uint32_t mask = HW::GICDistributor->ITARGETSR[IRQn / 4U] & ~(0xFFUL << ((IRQn % 4U) * 8U));
@@ -133,6 +141,10 @@ static inline uint32_t GIC_GetTarget(IRQn_Type IRQn) {
 	return (HW::GICDistributor->ITARGETSR[IRQn / 4U] >> ((IRQn % 4U) * 8U)) & 0xFFUL;
 }
 
+//
+// Enable/Disable
+//
+
 static inline void GIC_EnableIRQ(IRQn_Type IRQn) {
 	HW::GICDistributor->ISENABLER[IRQn / 32U] = 1U << (IRQn % 32U);
 	HW::GICRedist->ISENABLER[IRQn / 32U] = 1U << (IRQn % 32U);
@@ -142,17 +154,14 @@ static inline uint32_t GIC_GetEnableIRQ(IRQn_Type IRQn) {
 	return (HW::GICDistributor->ISENABLER[IRQn / 32U] >> (IRQn % 32U)) & 1UL;
 }
 
-/** \brief Disables the given interrupt using GIC's ICENABLER register.
- * \param [in] IRQn The interrupt to be disabled.
- */
 static inline void GIC_DisableIRQ(IRQn_Type IRQn) {
 	HW::GICDistributor->ICENABLER[IRQn / 32U] = 1U << (IRQn % 32U);
 }
 
-/** \brief Get interrupt pending status from GIC's ISPENDR register.
- * \param [in] IRQn The interrupt to be queried.
- * \return 0 - interrupt is not pending, 1 - interrupt is pendig.
- */
+//
+// Pending
+//
+
 static inline uint32_t GIC_GetPendingIRQ(IRQn_Type IRQn) {
 	uint32_t pend;
 
@@ -172,9 +181,6 @@ static inline uint32_t GIC_GetPendingIRQ(IRQn_Type IRQn) {
 	return (pend);
 }
 
-/** \brief Sets the given interrupt as pending using GIC's ISPENDR register.
- * \param [in] IRQn The interrupt to be enabled.
- */
 static inline void GIC_SetPendingIRQ(IRQn_Type IRQn) {
 	if (IRQn >= 16U) {
 		HW::GICDistributor->ISPENDR[IRQn / 32U] = 1U << (IRQn % 32U);
@@ -184,9 +190,6 @@ static inline void GIC_SetPendingIRQ(IRQn_Type IRQn) {
 	}
 }
 
-/** \brief Clears the given interrupt from being pending using GIC's ICPENDR register.
- * \param [in] IRQn The interrupt to be enabled.
- */
 static inline void GIC_ClearPendingIRQ(IRQn_Type IRQn) {
 	if (IRQn >= 16U) {
 		HW::GICDistributor->ICPENDR[IRQn / 32U] = 1U << (IRQn % 32U);
@@ -196,11 +199,11 @@ static inline void GIC_ClearPendingIRQ(IRQn_Type IRQn) {
 	}
 }
 
-/** \brief Sets the interrupt configuration using GIC's ICFGR register.
- * \param [in] IRQn The interrupt to be configured.
- * \param [in] int_config Int_config field value. Bit 0: Reserved (0 - N-N model, 1 - 1-N model for some GIC before v1)
- *                                           Bit 1: 0 - level sensitive, 1 - edge triggered
- */
+//
+// Edge/Level
+//
+
+// int_config: Bit 1: 0 - level sensitive, 1 - edge triggered
 static inline void GIC_SetConfiguration(IRQn_Type IRQn, uint32_t int_config) {
 	uint32_t icfgr = HW::GICDistributor->ICFGR[IRQn / 16U];
 	uint32_t shift = (IRQn % 16U) << 1U;
@@ -220,21 +223,29 @@ static inline uint32_t GIC_GetConfiguration(IRQn_Type IRQn) {
 	return (HW::GICDistributor->ICFGR[IRQn / 16U] >> ((IRQn % 16U) >> 1U));
 }
 
-/** \brief Set the priority for the given interrupt in the GIC's IPRIORITYR register.
- * \param [in] IRQn The interrupt to be configured.
- * \param [in] priority The priority for the interrupt, lower values denote higher priorities.
- */
+//
+// Priority
+//
 static inline void GIC_SetPriority(IRQn_Type IRQn, uint32_t priority) {
 	uint32_t mask = HW::GICDistributor->IPRIORITYR[IRQn / 4U] & ~(0xFFUL << ((IRQn % 4U) * 8U));
 	HW::GICDistributor->IPRIORITYR[IRQn / 4U] = mask | ((priority & 0xFFUL) << ((IRQn % 4U) * 8U));
 }
 
-/** \brief Read the current interrupt priority from GIC's IPRIORITYR register.
- * \param [in] IRQn The interrupt to be queried.
- */
 static inline uint32_t GIC_GetPriority(IRQn_Type IRQn) {
 	return (HW::GICDistributor->IPRIORITYR[IRQn / 4U] >> ((IRQn % 4U) * 8U)) & 0xFFUL;
 }
+
+static inline void GIC_SetRoutingMode(IRQn_Type IRQn) {
+	HW::GICDistributor->IROUTER[IRQn / 32U] = 1U << (IRQn % 32U);
+}
+
+static inline uint32_t GIC_GetRoutingMode(IRQn_Type IRQn) {
+	return (HW::GICDistributor->IROUTER[IRQn / 32U] >> (IRQn % 32U)) & 1UL;
+}
+
+//
+// Acknowledge
+//
 
 static inline IRQn_Type GIC_AcknowledgePendingGroup0(void) {
 	uint64_t reg;
@@ -248,6 +259,19 @@ static inline uint64_t GIC_AcknowledgePendingGroup1() {
 	return reg;
 }
 
+// EOIR always provides priority drop.
+// Two-step mode means ICC_DIR_EL1 provides interrupt deactivation,
+// otherwise EOIR also does interrupt deactivation
+static inline void GIC_SetEOIModeTwoStep(bool two_step) {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_CTLR_EL1\n\t" : "=r"(reg) : : "memory");
+	if (two_step)
+		reg |= (1 << 1);
+	else
+		reg &= ~(1 << 1);
+	asm volatile("msr ICC_CTLR_EL1, %0\n\t" : : "r"(reg) : "memory");
+}
+
 static inline void GIC_EndInterruptGroup0(IRQn_Type IRQn) {
 	uint64_t reg = IRQn;
 	asm volatile("msr ICC_EOIR0_EL1, %0\n\t" : : "r"(reg) : "memory");
@@ -256,6 +280,14 @@ static inline void GIC_EndInterruptGroup0(IRQn_Type IRQn) {
 static inline void GIC_EndInterruptGroup1(uint64_t IRQn) {
 	asm volatile("msr ICC_EOIR1_EL1, %0\n\t" : : "r"(IRQn) : "memory");
 }
+
+static inline void GIC_DeactivateInterrupt(uint64_t IRQn) {
+	asm volatile("msr ICC_DIR_EL1, %0\n\t" : : "r"(IRQn) : "memory");
+}
+
+//
+// Priority Mask and Binary Point
+//
 
 static inline void GIC_SetInterfacePriorityMask(uint64_t priority) {
 	asm volatile("msr ICC_PMR_EL1, %0\n\t" : : "r"(priority) : "memory");
@@ -285,6 +317,20 @@ static inline uint32_t GIC_GetBinaryPointGroup1() {
 	uint64_t reg;
 	asm volatile("mrs %0, ICC_BPR1_EL1\n\t" : "=r"(reg) : : "memory");
 	return reg;
+}
+
+static inline void GIC_SetBinaryPointCommonGroup() {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_CTLR_EL1\n\t" : "=r"(reg) : : "memory");
+	reg &= ~(1 << 0);
+	asm volatile("msr ICC_CTLR_EL1, %0\n\t" : : "r"(reg) : "memory");
+}
+
+static inline void GIC_SetBinaryPointNoCommonGroup() {
+	uint64_t reg;
+	asm volatile("mrs %0, ICC_CTLR_EL1\n\t" : "=r"(reg) : : "memory");
+	reg |= (1 << 0);
+	asm volatile("msr ICC_CTLR_EL1, %0\n\t" : : "r"(reg) : "memory");
 }
 
 /** \brief Get the status for a given interrupt.
