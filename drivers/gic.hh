@@ -106,15 +106,15 @@ static inline void GIC_EnableGroup1S(void) {
 	asm volatile("msr ICC_IGRPEN1_EL1, %0\n\t" : : "r"(reg) : "memory");
 }
 
-static inline void GIC_DisableGroup0(void) {
-	HW::GICDistributor->CTLR &= ~1U;
-}
-static inline void GIC_DisableGroup1NS(void) {
-	HW::GICDistributor->CTLR &= ~(1 << 1);
-}
-static inline void GIC_DisableGroup1S(void) {
-	HW::GICDistributor->CTLR &= ~(1 << 2);
-}
+// static inline void GIC_DisableGroup0(void) {
+// 	HW::GICDistributor->CTLR &= ~1U;
+// }
+// static inline void GIC_DisableGroup1NS(void) {
+// 	HW::GICDistributor->CTLR &= ~(1 << 1);
+// }
+// static inline void GIC_DisableGroup1S(void) {
+// 	HW::GICDistributor->CTLR &= ~(1 << 2);
+// }
 
 //
 // IDs
