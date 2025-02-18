@@ -13,6 +13,8 @@ struct PWM {
 	};
 
 	Chan chan[4];
+	uint32_t intsts;
+	uint32_t int_en;
 	// TODO: finish pwm registers
 };
 
