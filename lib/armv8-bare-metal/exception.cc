@@ -9,6 +9,7 @@
 
 #include "exception.h"
 #include "../../drivers/gic.hh"
+#include "../../drivers/gpio.hh"
 #include "../../drivers/serial.hh"
 #include <stdio.h>
 
@@ -76,6 +77,15 @@ void common_trap_handler(exception_frame *exc) {
 		auto irq = GIC_AcknowledgePendingGroup1();
 
 		printf("IRQ# %lu\n", (unsigned long)irq);
+
+		if (irq == 69) {
+			using namespace RockchipPeriph;
+
+			if (HW::GPIO4->intr_status & (1 << 16)) {
+				printf("Clear GPIO4 pin C0 interrupt\n");
+				HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
+			}
+		}
 
 		GIC_DeactivateInterrupt(irq);
 		GIC_EndInterruptGroup1(irq);
