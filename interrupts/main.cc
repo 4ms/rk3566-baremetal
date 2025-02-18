@@ -48,7 +48,7 @@ int main() {
 	printf("Read back BPR: bpr0:%x bpr1:%x\n", GIC_GetBinaryPoint(), GIC_GetBinaryPointGroup1());
 
 	printf("Set EOI mode to single step\n");
-	GIC_SetEOIModeTwoStep(true);
+	GIC_SetEOIModeTwoStep(false);
 
 	auto spsr = read_spsr_el2();
 	printf("spsr = 0x%lx, IRQ masked = %u, FIQ masked = %u\n", spsr, BIT(spsr, 7), BIT(spsr, 6));
@@ -57,12 +57,12 @@ int main() {
 	printf("Enable Group1NS in GICD CTRL\n");
 	GIC_EnableGroup1NS();
 
-	printf("Config GPIO4 as level/edge:\n");
-	GIC_SetConfiguration(GPIO4IRQ, GIC_GICD_ICFGR_LEVEL);
+	auto type = GIC_GICD_ICFGR_EDGE;
+	printf("Config GPIO4 as %s\n", type == GIC_GICD_ICFGR_LEVEL ? "level" : "edge");
+	GIC_SetConfiguration(GPIO4IRQ, type);
 
 	printf("Disable IRQ %u\n", GPIO4IRQ);
 	GIC_DisableIRQ(GPIO4IRQ);
-	printf("readback GPIO4 IRQ enabled bit: %u\n", GIC_GetEnableIRQ(GPIO4IRQ));
 
 	auto pri = 1 << 0;
 	printf("Set priority for IRQ %u to %u\n", GPIO4IRQ, pri);
@@ -129,13 +129,13 @@ int main() {
 		asm("nop");
 
 		if (pp++ >= 4'000'000) {
-			GIC_SetInterfacePriorityMask(pmr);
-			printf("en: %u stat:%u pri:%u\n",
+			// GIC_SetInterfacePriorityMask(pmr);
+			printf("EL: %d, en: %u IRQstat:%u intr_status:%x (%x)\n",
+				   get_current_el(),
 				   GIC_GetEnableIRQ(GPIO4IRQ),
 				   GIC_GetIRQStatus(GPIO4IRQ),
-				   GIC_GetPriority(GPIO4IRQ));
-			auto el = get_current_el();
-			printf("Current EL: %d\n", el);
+				   HW::GPIO4->intr_rawstatus,
+				   HW::GPIO4->intr_status);
 			pp = 0;
 		}
 
