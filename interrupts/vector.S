@@ -1,3 +1,4 @@
+// Tags used in dump to tell us what kind of exception happened
 .equ CUR_EL_SYNC_SP0, 1
 .equ CUR_EL_SERR_SP0, 2
 .equ CUR_EL_SYNC_SPX, 3
@@ -28,9 +29,9 @@ vectors:
 	.balign 128
 	handle_exception CUR_EL_SYNC_SP0
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 	.balign 128
 	handle_exception CUR_EL_SERR_SP0
 
@@ -42,7 +43,7 @@ vectors:
 	.balign 128
 	b	handle_irq
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 	.balign 128
 	handle_exception CUR_EL_SERR_SPX
 
@@ -52,9 +53,9 @@ vectors:
 	.balign 128
 	handle_exception LOWER_EL_SYNC
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 	.balign 128
 	handle_exception LOWER_EL_SERR
 
@@ -65,10 +66,10 @@ vectors:
 	handle_exception LOWER_EL_A32_SYNC
 
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 
 	.balign 128
-	b	unhandled
+	b	unhandled_int
 
 	.balign 128
 	handle_exception LOWER_EL_A32_SERR
@@ -79,13 +80,11 @@ vectors:
  */
 .macro	push_interrupt_context
 /*
- * Push x1-x21 on to the stack, need 19-21 because they're modified without
+ * Push x0-x21,lr on to the stack, need 19-21 because they're modified without
  * obeying PCS
  */
-	stp x0,		lr,	[sp, #-0x10]!	/* Push x0,lr on to the stack */
-	bl curr_el_spx_irq_get_pc	/* Get current execution address */
-curr_el_spx_irq_get_pc:			/* The current PC is now in LR */
-	stp lr,		x1,		[sp, #-0x10]! // Though we don't use this lr?
+	stp lr,		lr,		[sp, #-0x10]! // Do we use lr?
+	stp x0,		x1,		[sp, #-0x10]! 
 	stp x2,		x3,		[sp, #-0x10]!
 	stp x4,		x5,		[sp, #-0x10]!
 	stp x6,		x7,		[sp, #-0x10]!
@@ -116,30 +115,28 @@ curr_el_spx_irq_get_pc:			/* The current PC is now in LR */
 	stp q26,	q27,	[sp, #-0x20]!
 	stp q28,	q29,	[sp, #-0x20]!
 	stp q30,	q31,	[sp, #-0x20]!
-/* Get exception LR for PC and spsr */
-	mrs x0, ELR_EL2
-	mrs x1, SPSR_EL2
-/* Push pc and spsr */
+/* Push exception LR for PC and spsr */
+	mrs x0, 	elr_el2
+	mrs x1, 	spsr_el2
 	stp x0,		x1,	[sp, #-0x10]!
-/* Get fpcr and fpsr */
-	mrs x0, FPSR
-	mrs x1, FPCR
 /* Push fpcr and fpsr */
-	stp x0,		x1,	[sp, #-0x10]!
+	mrs x0, fpsr
+	mrs x1, fpcr
+	stp x0,	x1,	[sp, #-0x10]!
 .endm
 
 /* Must match inverse order of .push_interrupt_context */
 .macro pop_interrupt_context
 /* Pop fpcr and fpsr */
-	ldp x0,		x1,	[sp], #0x10
+	ldp x0,	x1,	[sp], #0x10
 /* Restore fpcr and fpsr */
-	msr FPCR, x1
-	msr FPSR, x0
+	msr fpcr, x1
+	msr fpsr, x0
 /* Pop pc and spsr */
 	ldp x0,		x1,	[sp], #0x10
 /* Restore exception LR for PC and spsr */
-	msr SPSR_EL2, x1
-	msr ELR_EL2, x0
+	msr spsr_el2, x1
+	msr elr_el2, x0
 /* Pop q0-q31 */
 	ldp q30,	q31,	[sp], #0x20
 	ldp q28,	q29,	[sp], #0x20
@@ -157,7 +154,7 @@ curr_el_spx_irq_get_pc:			/* The current PC is now in LR */
 	ldp q4,		q5,		[sp], #0x20
 	ldp q2,		q3,		[sp], #0x20
 	ldp q0,		q1,		[sp], #0x20
-/* Pop x1-x21 */
+/* Pop x0-x21, lr */
 	ldp x20,	x21,	[sp], #0x10
 	ldp x18,	x19,	[sp], #0x10
 	ldp x16,	x17,	[sp], #0x10
@@ -168,8 +165,8 @@ curr_el_spx_irq_get_pc:			/* The current PC is now in LR */
 	ldp x6,		x7,		[sp], #0x10
 	ldp x4,		x5,		[sp], #0x10
 	ldp x2,		x3,		[sp], #0x10
-	ldp lr,		x1,		[sp], #0x10 // Looks like we discard this lr?
-	ldp x0,		lr,		[sp], #0x10
+	ldp x0,		x1,		[sp], #0x10 
+	ldp lr,		lr,		[sp], #0x10
 
 
 /* Must clear reservations here to ensure consistency with atomic operations */
@@ -178,9 +175,15 @@ curr_el_spx_irq_get_pc:			/* The current PC is now in LR */
 
 handle_irq:
 	// TODO:
-	// save spsr_el2?
 	// push registers we need for the following (prob just x0, x1)
-	// read IAR
+
+	str x0,	[sp, #-0x08]! // Store original x0 (since we overwrite it with INTID)
+
+	mrs x0, icc_iar1_el1
+
+	str x0,	[sp, #-0x08]! // Store the INTID
+
+	// TODO
 	// Check if valid or spurious
 	// stack align??
 
@@ -196,11 +199,16 @@ handle_irq:
 
 	pop_interrupt_context
 
-	// TODO: set spsr_el2?
+exit_irq_handler:
+	ldr x0, [sp], #0x08 	// Pop INTID
+	msr icc_eoir0_el1, x0 	// Acknowledge
+
+	ldr x0, [sp], #0x08
+
 	// This will restore DAIF from SPSR_EL2
 	eret
 
 
-unhandled:
+unhandled_int:
 	b .
 
