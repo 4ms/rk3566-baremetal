@@ -138,12 +138,6 @@ int main() {
 		asm("nop");
 
 		if (pp++ >= 4'000'000) {
-			// printf("EL: %d, en: %u IRQstat:%u intr_status:%x (%x)\n",
-			// 	   get_current_el(),
-			// 	   GIC_GetEnableIRQ(irqn),
-			// 	   GIC_GetIRQStatus(irqn),
-			// 	   HW::GPIO4->intr_rawstatus,
-			// 	   HW::GPIO4->intr_status);
 			printf("EL: %d, en: %u IRQstat:%u, intsts=%x\n",
 				   get_current_el(),
 				   GIC_GetEnableIRQ(irqn),
@@ -157,24 +151,5 @@ int main() {
 
 			pp = 0;
 		}
-
-		// volatile int dly = 1'000'000;
-		// while (dly--)
-		// 	;
-
-		// if (*gic_pending) {
-		// 	printf("pending gpio4 interrupt %08x\n", *gic_pending);
-		// 	auto irq = GIC_AcknowledgePending();
-		// 	if (irq != GPIO4IRQ) {
-		// 		printf("ack %d, not %d\n", irq, GPIO4IRQ);
-		// 		GIC_EndInterrupt(irq);
-		// 	} else
-		// 		GIC_EndInterrupt(GPIO4IRQ);
-		// }
-
-		// if (HW::GPIO4->intr_status & (1 << 16)) {
-		// 	printf("Clear\n");
-		// 	HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
-		// }
 	}
 }
