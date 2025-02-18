@@ -1,15 +1,16 @@
 #include "armv8-bare-metal/aarch64.h"
-#include "armv8-bare-metal/gic_v3.h"
 
 #include "aarch64_system_reg.hh"
-#include "gpio.hh"
-// #include "mmu.h"
+#include "armv8-bare-metal/gic_v3.h"
 #include "console.hh"
 #include "gic.hh"
-#include "serial.hh"
+#include "gpio.hh"
+#include "gpiomux.hh"
+#include "grf.hh"
+#include "pwm.hh"
 #include <cstdio>
 
-constexpr uint32_t GPIO4IRQ = 69;
+// constexpr uint32_t GPIO4IRQ = 69;
 
 bool BIT(auto reg, unsigned pos) {
 	return (reg & (1 << pos)) ? true : false;
@@ -57,57 +58,64 @@ int main() {
 	printf("Enable Group1NS in GICD CTRL\n");
 	GIC_EnableGroup1NS();
 
-	auto type = GIC_GICD_ICFGR_EDGE;
-	printf("Config GPIO4 as %s\n", type == GIC_GICD_ICFGR_LEVEL ? "level" : "edge");
-	GIC_SetConfiguration(GPIO4IRQ, type);
-
-	printf("Disable IRQ %u\n", GPIO4IRQ);
-	GIC_DisableIRQ(GPIO4IRQ);
-
-	auto pri = 1 << 0;
-	printf("Set priority for IRQ %u to %u\n", GPIO4IRQ, pri);
-	GIC_SetPriority(GPIO4IRQ, pri);
-
-	printf("Clear pending IRQ %u:\n", GPIO4IRQ);
-	GIC_ClearPendingIRQ(GPIO4IRQ);
-
-	printf("Enable IRQ %u:\n", GPIO4IRQ);
-	GIC_EnableIRQ(GPIO4IRQ);
-
 	printf("Set Routing mode to 1\n");
 	GIC_SetRoutingMode(1);
 
 	printf("VBAR_EL2 = %08lx\n", raw_read_vbar_el2());
 	printf("DAIF = %08x\n", raw_read_daif());
 
+	HW::PMU->gpio0_b_h.write(Rockchip::GPIO0B_IOMUX_H_SEL_7::PWM0_M0);
+	HW::PWM0->chan[0].period = 0xFFFF;
+	HW::PWM0->chan[0].duty = 2048;
+	HW::PWM0->int_en = 0x1;
+
+	auto irqn = 114;
+
+	printf("Disable IRQ %u\n", irqn);
+	GIC_DisableIRQ(irqn);
+
+	auto type = GIC_GICD_ICFGR_EDGE;
+	printf("Config GPIO4 as %s\n", type == GIC_GICD_ICFGR_LEVEL ? "level" : "edge");
+	GIC_SetConfiguration(irqn, type);
+
+	auto pri = 1 << 0;
+	printf("Set priority for IRQ %u to %u\n", irqn, pri);
+	GIC_SetPriority(irqn, pri);
+
+	printf("Clear pending IRQ %u:\n", irqn);
+	GIC_ClearPendingIRQ(irqn);
+
+	printf("Enable IRQ %u:\n", irqn);
+	GIC_EnableIRQ(irqn);
+
+	// Set up GPIO4_C0 as input
+	// HW::GPIO4->dir_H = Gpio::masked_clr_bit(Gpio::C(0));
+
+	// // disable interrupt
+	// HW::GPIO4->intr_en_H = Gpio::masked_clr_bit(Gpio::C(0));
+
+	// // polarity High
+	// HW::GPIO4->intr_pol_H = Gpio::masked_set_bit(Gpio::C(0));
+
+	// // Clear pending
+	// HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
+
+	// // Int type = edge
+	// HW::GPIO4->intr_type_H = Gpio::masked_set_bit(Gpio::C(0));
+
+	// // disable debounce
+	// HW::GPIO4->debounce_H = Gpio::masked_clr_bit(Gpio::C(0));
+
+	// // // unmask interrupt
+	// HW::GPIO4->intr_mask_H = Gpio::masked_clr_bit(Gpio::C(0));
+
+	// // enable interrupt
+	// HW::GPIO4->intr_en_H = Gpio::masked_set_bit(Gpio::C(0));
+
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
 	HW::GPIO0->high(Gpio::Port::C, 5);
 	HW::GPIO0->low(Gpio::Port::C, 5);
-
-	// Set up GPIO4_C0 as input
-	HW::GPIO4->dir_H = Gpio::masked_clr_bit(Gpio::C(0));
-
-	// disable interrupt
-	HW::GPIO4->intr_en_H = Gpio::masked_clr_bit(Gpio::C(0));
-
-	// polarity High
-	HW::GPIO4->intr_pol_H = Gpio::masked_set_bit(Gpio::C(0));
-
-	// Clear pending
-	HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
-
-	// Int type = edge
-	HW::GPIO4->intr_type_H = Gpio::masked_set_bit(Gpio::C(0));
-
-	// disable debounce
-	HW::GPIO4->debounce_H = Gpio::masked_clr_bit(Gpio::C(0));
-
-	// // unmask interrupt
-	HW::GPIO4->intr_mask_H = Gpio::masked_clr_bit(Gpio::C(0));
-
-	// enable interrupt
-	HW::GPIO4->intr_en_H = Gpio::masked_set_bit(Gpio::C(0));
 
 	// Enable IRQ
 	enable_irq();
@@ -123,19 +131,30 @@ int main() {
 	printf("\n");
 
 	unsigned pp = 0;
+	HW::PWM0->chan[0].control = 0x01; // one shot
 	while (true) {
 		Console::process();
 
 		asm("nop");
 
 		if (pp++ >= 4'000'000) {
-			// GIC_SetInterfacePriorityMask(pmr);
-			printf("EL: %d, en: %u IRQstat:%u intr_status:%x (%x)\n",
+			// printf("EL: %d, en: %u IRQstat:%u intr_status:%x (%x)\n",
+			// 	   get_current_el(),
+			// 	   GIC_GetEnableIRQ(irqn),
+			// 	   GIC_GetIRQStatus(irqn),
+			// 	   HW::GPIO4->intr_rawstatus,
+			// 	   HW::GPIO4->intr_status);
+			printf("EL: %d, en: %u IRQstat:%u, intsts=%x\n",
 				   get_current_el(),
-				   GIC_GetEnableIRQ(GPIO4IRQ),
-				   GIC_GetIRQStatus(GPIO4IRQ),
-				   HW::GPIO4->intr_rawstatus,
-				   HW::GPIO4->intr_status);
+				   GIC_GetEnableIRQ(irqn),
+				   GIC_GetIRQStatus(irqn),
+				   HW::PWM0->intsts);
+
+			if (HW::PWM0->intsts == 0) {
+				printf("intsts is 0, firing one shot\n");
+				HW::PWM0->chan[0].control = 0x01; // one shot
+			}
+
 			pp = 0;
 		}
 

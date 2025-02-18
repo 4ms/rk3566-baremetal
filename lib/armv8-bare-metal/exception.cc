@@ -10,7 +10,9 @@
 #include "exception.h"
 #include "../../drivers/gic.hh"
 #include "../../drivers/gpio.hh"
+#include "../../drivers/pwm.hh"
 #include "../../drivers/serial.hh"
+#include "aarch64.h"
 #include <stdio.h>
 
 void dump_frame(exception_frame *exc) {
@@ -76,7 +78,22 @@ void common_trap_handler(exception_frame *exc) {
 		printf("IRQ in AARCH64, SPx\n");
 		auto irq = GIC_AcknowledgePendingGroup1();
 
-		printf("Ack IRQ# %lu, status => %x\n", (unsigned long)irq, GIC_GetIRQStatus(69));
+		printf("Ack IRQ# %lu\n", (unsigned long)irq);
+		// printf("status => %x\n", GIC_GetIRQStatus(69));
+
+		if (irq == 114) {
+			printf("Re-enabling PMW interrupt\n");
+			HW::PWM0->int_en = 0x0;
+			printf("Writing 1 to clear interrupt\n");
+			HW::PWM0->intsts = 0x1;
+			HW::PWM0->int_en = 0x1;
+
+			printf("[in ISR] EL: %d, en: %u IRQstat:%u, intsts=%x\n",
+				   get_current_el(),
+				   GIC_GetEnableIRQ(114),
+				   GIC_GetIRQStatus(114),
+				   HW::PWM0->intsts);
+		}
 
 		if (irq == 69) {
 			using namespace RockchipPeriph;
@@ -97,6 +114,16 @@ void common_trap_handler(exception_frame *exc) {
 
 		// GIC_DeactivateInterrupt(irq);
 		GIC_EndInterruptGroup1(irq);
+		printf("[after eoi] EL: %d, en: %u IRQstat:%u, intsts=%x\n",
+			   get_current_el(),
+			   GIC_GetEnableIRQ(114),
+			   GIC_GetIRQStatus(114),
+			   HW::PWM0->intsts);
+		// GIC_EndInterruptGroup0(irq);
+
+		HW::PWM0->intsts = 0x1;
+		// printf("Enable one-shot\n");
+		// HW::PWM0->chan[0].control = 0x01; // one shot
 		return;
 	}
 
