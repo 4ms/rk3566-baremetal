@@ -76,18 +76,26 @@ void common_trap_handler(exception_frame *exc) {
 		printf("IRQ in AARCH64, SPx\n");
 		auto irq = GIC_AcknowledgePendingGroup1();
 
-		printf("IRQ# %lu\n", (unsigned long)irq);
+		printf("Ack IRQ# %lu, status => %x\n", (unsigned long)irq, GIC_GetIRQStatus(69));
 
 		if (irq == 69) {
 			using namespace RockchipPeriph;
 
 			if (HW::GPIO4->intr_status & (1 << 16)) {
-				printf("Clear GPIO4 pin C0 interrupt\n");
+				printf("Clear GPIO4 pin C0 interrupt. Gpio4 intr status %x (%x) => ",
+					   HW::GPIO4->intr_rawstatus,
+					   HW::GPIO4->intr_status);
+				// HW::GPIO4->intr_en_H = Gpio::masked_clr_bit(Gpio::C(0));
 				HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
+				// HW::GPIO4->intr_en_H = Gpio::masked_set_bit(Gpio::C(0));
+				printf("%x (%x). IRQstatus: %u\n",
+					   HW::GPIO4->intr_rawstatus,
+					   HW::GPIO4->intr_status,
+					   GIC_GetIRQStatus(69));
 			}
 		}
 
-		GIC_DeactivateInterrupt(irq);
+		// GIC_DeactivateInterrupt(irq);
 		GIC_EndInterruptGroup1(irq);
 		return;
 	}
