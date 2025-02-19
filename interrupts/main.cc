@@ -17,6 +17,14 @@ constexpr uint32_t PWM0IRQ = 114;
 
 void dump_sys_state();
 
+CONSOLE_COMMAND_DEF(pin, "pin", CONSOLE_INT_ARG_DEF(onoff, "1=on 0=off"));
+static void pin_command_handler(const pin_args_t *args) {
+	if (args->onoff)
+		HW::GPIO0->high(RockchipPeriph::Gpio::Port::C, 5);
+	else
+		HW::GPIO0->low(RockchipPeriph::Gpio::Port::C, 5);
+}
+
 CONSOLE_COMMAND_DEF(oneshot, "oneshot", CONSOLE_INT_ARG_DEF(num, "Which PWM to fire a one-shot"));
 static void oneshot_command_handler(const oneshot_args_t *args) {
 	if (args->num == 0)
@@ -41,6 +49,7 @@ static void st_command_handler(const st_args_t *args) {
 int main() {
 	console_command_register(oneshot);
 	console_command_register(st);
+	console_command_register(pin);
 
 	dump_sys_state();
 
@@ -95,7 +104,13 @@ int main() {
 		double x = 2.;
 		while ((long)x < 0x10000000) {
 			printf("PWM: %g\n", x);
-			x = x * 1.0005;
+			// x = x * 1.0005;
+			x = x * 2;
+
+			if (x > 1023 && x < 1025) {
+				printf("Set GPIO0 C5 high\n");
+				HW::GPIO0->high(Gpio::Port::C, 5);
+			}
 		}
 		// clear:
 		HW::PWM0->intsts = 0x1;
@@ -106,20 +121,22 @@ int main() {
 	HW::PWM0->chan[0].duty = 2048;
 	HW::PWM0->int_en = 0x1;
 
+	///////////////////////////////
+
 	// Enable IRQs
 	enable_irq();
-	printf("\nEnable IRQ, DAIF = %x\n", read_daif());
+	printf("\nEnable IRQ\n");
 
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
-	HW::GPIO0->high(Gpio::Port::C, 5);
 	HW::GPIO0->low(Gpio::Port::C, 5);
-	HW::GPIO0->high(Gpio::Port::C, 5);
-	printf("Set GPIO0 C5 high\n");
 
 	Console::init();
 
-	printf("\n");
+	printf("\nFiring one shot\n");
+
+	// Fire the oneshot
+	HW::PWM0->chan[0].control = 0x01;
 
 	while (true) {
 		Console::process();
