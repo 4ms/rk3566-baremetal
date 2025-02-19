@@ -1,0 +1,13 @@
+SOURCES = startup.s 
+SOURCES += main.cc
+SOURCES += ../drivers/serial.cc
+SOURCES += ../drivers/init.cc
+SOURCES += ../system/libc/read_write.c
+SOURCES += ../system/libc/sbrk.cc
+SOURCES += ../system/libc/libc_stub.c
+
+INCLUDES  = -I.
+INCLUDES += -I../drivers
+
+# ignore this static assert failure.
+include ../makefile-common.mk
