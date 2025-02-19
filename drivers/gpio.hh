@@ -4,6 +4,7 @@ namespace RockchipPeriph
 {
 
 struct Gpio {
+private:
 	static uint32_t masked_set_bit(uint8_t bit) {
 		return (1 << bit) | (1 << (bit + 16));
 	}
@@ -39,6 +40,7 @@ struct Gpio {
 		return masked_clr_bit(bit);
 	}
 
+public:
 	enum class Port { A, B, C, D };
 	void high(Port port, uint8_t pin) volatile {
 		if (port == Port::A)
@@ -66,6 +68,34 @@ struct Gpio {
 
 		if (port == Port::D)
 			data_H = low(D(pin));
+	}
+
+	void config_output(Port port, uint8_t pin) volatile {
+		if (port == Port::A)
+			dir_L = high(A(pin));
+
+		if (port == Port::B)
+			dir_L = high(B(pin));
+
+		if (port == Port::C)
+			dir_H = high(C(pin));
+
+		if (port == Port::D)
+			dir_H = high(D(pin));
+	}
+
+	void config_input(Port port, uint8_t pin) volatile {
+		if (port == Port::A)
+			dir_L = low(A(pin));
+
+		if (port == Port::B)
+			dir_L = low(B(pin));
+
+		if (port == Port::C)
+			dir_H = low(C(pin));
+
+		if (port == Port::D)
+			dir_H = low(D(pin));
 	}
 
 	// 0 = Output low, 1 = Output high
