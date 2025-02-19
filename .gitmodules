@@ -1,3 +1,6 @@
-[submodule "anchor"]
-	path = shell/anchor
-	url = https://github.com/bgomberg/anchor
+[submodule "drivers/mdrivlib"]
+	path = drivers/mdrivlib
+	url = https://github.com/4ms/mdrivlib
+[submodule "lib/cpputil"]
+	path = lib/cpputil
+	url = https://github.com/4ms/cpputil

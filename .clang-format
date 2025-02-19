@@ -1,5 +1,5 @@
 BasedOnStyle : "LLVM"
-Standard : "c++17"
+Standard : "c++20"
 UseTab : "Always"
 TabWidth : 4
 IndentWidth : 4
@@ -9,7 +9,7 @@ AlignAfterOpenBracket: "Align"
 AlignOperands : "AlignAfterOperator"
 AllowAllArgumentsOnNextLine : "true"
 AllowShortBlocksOnASingleLine : "true"
-AllowShortFunctionsOnASingleLine: "All"
+AllowShortFunctionsOnASingleLine: "Empty"
 AllowShortIfStatementsOnASingleLine : "Never"
 AlwaysBreakTemplateDeclarations : "true"
 BinPackArguments: false
@@ -20,7 +20,7 @@ BraceWrapping:
   AfterClass: false
   AfterControlStatement: MultiLine
   AfterEnum: false
-  AfterFunction: true
+  AfterFunction: false
   AfterNamespace: true
   AfterStruct: false
   AfterUnion: false

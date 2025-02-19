@@ -20,7 +20,8 @@ ARCH_CFLAGS ?= $(EXTRA_ARCH_CFLAGS)
 
 OPTFLAG ?= -O0
 
-AFLAGS = $(MCU)
+AFLAGS = $(MCU) 
+		 # -nostartfiles
 
 CFLAGS = -g2 \
 		 -fno-common \
@@ -50,6 +51,7 @@ LFLAGS = -Wl,-Map,$(BUILDDIR)/$(BINARYNAME).map,--cref \
 		 $(EXTRALDFLAGS) \
 		 -nostartfiles \
 		 -Wl,--gc-sections \
+		 -Wl,--no-warn-rwx-segments
 
 DEPFLAGS = -MMD -MP -MF $(OBJDIR)/$(basename $<).d
 
