@@ -7,41 +7,41 @@ using IRQn_Type = uint32_t;
 
 // GICD
 struct GICD_t {
-	uint32_t CTLR;				  // Offset: 0x000 (R/W) Distributor Control Register
-	const uint32_t TYPER;		  // Offset: 0x004 (R/ ) Interrupt Controller Type Register
-	const uint32_t IIDR;		  // Offset: 0x008 (R/ ) Distributor Implementer Identification Register
-	RESERVED(0, uint32_t)		  // TYPER2
-	uint32_t STATUSR;			  // Offset: 0x010 (R/W) Error Reporting Status Register, optional
-	RESERVED(1 [11], uint32_t)	  //
-	uint32_t SETSPI_NSR;		  // Offset: 0x040 ( /W) Set SPI Register
-	RESERVED(2, uint32_t)		  //
-	uint32_t CLRSPI_NSR;		  // Offset: 0x048 ( /W) Clear SPI Register
-	RESERVED(3, uint32_t)		  //
-	uint32_t SETSPI_SR;			  // Offset: 0x050 ( /W) Set SPI, Secure Register
-	RESERVED(4, uint32_t)		  //
-	uint32_t CLRSPI_SR;			  // Offset: 0x058 ( /W) Clear SPI, Secure Register
-	RESERVED(5 [9], uint32_t)	  //
-	uint32_t IGROUPR[32];		  // Offset: 0x080 (R/W) Interrupt Group Registers
-	uint32_t ISENABLER[32];		  // Offset: 0x100 (R/W) Interrupt Set-Enable Registers
-	uint32_t ICENABLER[32];		  // Offset: 0x180 (R/W) Interrupt Clear-Enable Registers
-	uint32_t ISPENDR[32];		  // Offset: 0x200 (R/W) Interrupt Set-Pending Registers
-	uint32_t ICPENDR[32];		  // Offset: 0x280 (R/W) Interrupt Clear-Pending Registers
-	uint32_t ISACTIVER[32];		  // Offset: 0x300 (R/W) Interrupt Set-Active Registers
-	uint32_t ICACTIVER[32];		  // Offset: 0x380 (R/W) Interrupt Clear-Active Registers
-	uint32_t IPRIORITYR[255];	  // Offset: 0x400 (R/W) Interrupt Priority Registers
-	RESERVED(6, uint32_t)		  //
-	uint32_t ITARGETSR[255];	  // Offset: 0x800 (R/W) Interrupt Targets Registers
-	RESERVED(7, uint32_t)		  //
-	uint32_t ICFGR[64];			  // Offset: 0xC00 (R/W) Interrupt Configuration Registers
-	uint32_t IGRPMODR[32];		  // Offset: 0xD00 (R/W) Interrupt Group Modifier Registers
-	RESERVED(8 [32], uint32_t)	  //
-	uint32_t NSACR[64];			  // Offset: 0xE00 (R/W) Non-secure Access Control Registers
-	uint32_t SGIR;				  // Offset: 0xF00 ( /W) Software Generated Interrupt Register
-	RESERVED(9 [3], uint32_t)	  //
-	uint32_t CPENDSGIR[4];		  // Offset: 0xF10 (R/W) SGI Clear-Pending Registers
-	uint32_t SPENDSGIR[4];		  // Offset: 0xF20 (R/W) SGI Set-Pending Registers
-	RESERVED(10 [5236], uint32_t) //
-	uint64_t IROUTER[988];		  // Offset: 0x6100(R/W) Interrupt Routing Registers
+	uint32_t CTLR;			  // Offset: 0x000 (R/W) Distributor Control Register
+	const uint32_t TYPER;	  // Offset: 0x004 (R/ ) Interrupt Controller Type Register
+	const uint32_t IIDR;	  // Offset: 0x008 (R/ ) Distributor Implementer Identification Register
+	uint32_t _pad0;			  // TYPER2
+	uint32_t STATUSR;		  // Offset: 0x010 (R/W) Error Reporting Status Register, optional
+	uint32_t _pad1[11];		  //
+	uint32_t SETSPI_NSR;	  // Offset: 0x040 ( /W) Set SPI Register
+	uint32_t _pad2;			  //
+	uint32_t CLRSPI_NSR;	  // Offset: 0x048 ( /W) Clear SPI Register
+	uint32_t _pad3;			  //
+	uint32_t SETSPI_SR;		  // Offset: 0x050 ( /W) Set SPI, Secure Register
+	uint32_t _pad4;			  //
+	uint32_t CLRSPI_SR;		  // Offset: 0x058 ( /W) Clear SPI, Secure Register
+	uint32_t _pad5[9];		  //
+	uint32_t IGROUPR[32];	  // Offset: 0x080 (R/W) Interrupt Group Registers
+	uint32_t ISENABLER[32];	  // Offset: 0x100 (R/W) Interrupt Set-Enable Registers
+	uint32_t ICENABLER[32];	  // Offset: 0x180 (R/W) Interrupt Clear-Enable Registers
+	uint32_t ISPENDR[32];	  // Offset: 0x200 (R/W) Interrupt Set-Pending Registers
+	uint32_t ICPENDR[32];	  // Offset: 0x280 (R/W) Interrupt Clear-Pending Registers
+	uint32_t ISACTIVER[32];	  // Offset: 0x300 (R/W) Interrupt Set-Active Registers
+	uint32_t ICACTIVER[32];	  // Offset: 0x380 (R/W) Interrupt Clear-Active Registers
+	uint32_t IPRIORITYR[255]; // Offset: 0x400 (R/W) Interrupt Priority Registers
+	uint32_t _pad6;			  //
+	uint32_t ITARGETSR[255];  // Offset: 0x800 (R/W) Interrupt Targets Registers
+	uint32_t _pad7;			  //
+	uint32_t ICFGR[64];		  // Offset: 0xC00 (R/W) Interrupt Configuration Registers
+	uint32_t IGRPMODR[32];	  // Offset: 0xD00 (R/W) Interrupt Group Modifier Registers
+	uint32_t _pad8[32];		  //
+	uint32_t NSACR[64];		  // Offset: 0xE00 (R/W) Non-secure Access Control Registers
+	uint32_t SGIR;			  // Offset: 0xF00 ( /W) Software Generated Interrupt Register
+	uint32_t _pad9[3];		  //
+	uint32_t CPENDSGIR[4];	  // Offset: 0xF10 (R/W) SGI Clear-Pending Registers
+	uint32_t SPENDSGIR[4];	  // Offset: 0xF20 (R/W) SGI Set-Pending Registers
+	uint32_t _pad10[5236];	  //
+	uint64_t IROUTER[988];	  // Offset: 0x6100(R/W) Interrupt Routing Registers
 };
 
 struct GICR_t {
