@@ -9,5 +9,8 @@ SOURCES += ../drivers/print.cc
 INCLUDES  = -I.
 INCLUDES += -I..
 
+INCLUDES += -I../drivers/mdrivlib/target/rk3566
+INCLUDES += -I../drivers/mdrivlib/target/aarch64
+
 include ../makefile-common.mk
 

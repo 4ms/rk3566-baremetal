@@ -1,6 +1,6 @@
 #include "drivers/print.hh"
 #include "drivers/serial.hh"
-#include "drivers/uart.hh"
+#include "drivers/uart_base.hh"
 
 #include <array>
 

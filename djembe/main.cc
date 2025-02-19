@@ -1,9 +1,7 @@
 #include "djembe.hh"
 #include "drivers/aarch64_system_reg.hh"
-#include "gpio.hh"
+#include "drivers/gpio.hh"
 #include "mmu.h"
-#include "print.hh"
-#include "uart.hh"
 #include <cstdio>
 
 int main() {

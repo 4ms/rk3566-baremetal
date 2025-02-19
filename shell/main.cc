@@ -1,6 +1,4 @@
-#include "console.hh"
-#include "uart.hh"
-#include <cstdio>
+#include "drivers/console.hh"
 
 extern "C" int cruntimemain() {
 	Console::init();

@@ -16,6 +16,7 @@ INCLUDES += -I../lib
 OPTFLAG = -O3
 
 INCLUDES += -I../drivers/mdrivlib/target/aarch64
+INCLUDES += -I../drivers/mdrivlib/target/rk3566
 
 include ../makefile-common.mk
 

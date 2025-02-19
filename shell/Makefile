@@ -10,6 +10,11 @@ SOURCES += ../system/libc/libc_stub.c
 
 INCLUDES  = -I.
 INCLUDES += -I..
+
+INCLUDES += -I../drivers/mdrivlib
+INCLUDES += -I../drivers/mdrivlib/target/rk3566
+INCLUDES += -I../drivers/mdrivlib/target/aarch64
+
 INCLUDES += -I../lib/anchor-console/include
 
 EXTRA_ARCH_CFLAGS = -DCONSOLE_RETURN_KEY=13

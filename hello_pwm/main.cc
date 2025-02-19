@@ -1,6 +1,5 @@
-#include "grf.hh"
-#include "pwm.hh"
-#include "uart.hh"
+#include "drivers/grf.hh"
+#include "drivers/pwm.hh"
 #include <algorithm>
 #include <cstdio>
 

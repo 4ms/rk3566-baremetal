@@ -1,11 +1,10 @@
-#include "gpio.hh"
+#include "drivers/gpio.hh"
+#include "drivers/uart_base.hh"
 #include "memory_layout.h"
 #include "mmu.h"
 #include "print.hh"
-#include "uart.hh"
 
-int main()
-{
+int main() {
 	using namespace RockchipPeriph;
 
 	// Set up GPIO0_C5 as output
