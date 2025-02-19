@@ -171,20 +171,19 @@ vectors:
 	ldp x0,		x1,		[sp], #0x10 
 	ldp x0,		lr,		[sp], #0x10
 
-
 /* Must clear reservations here to ensure consistency with atomic operations */
 	clrex
 .endm
 
 handle_irq:
 
-	// TODO
-	// Check if valid or spurious
-	// stack align??
-
 	push_interrupt_context
 
 	mrs x0, icc_iar1_el1
+
+	// Skip if spurious
+	cmp x0, #1020
+	bhi exit_irq_handler
 
 	str x0,	[sp, #-0x08]! // Store the INTID
 
@@ -200,21 +199,18 @@ handle_irq:
 
 	msr icc_eoir0_el1, x0 	// Acknowledge
 
-	pop_interrupt_context
-
 exit_irq_handler:
 
+	pop_interrupt_context
 
-	// This will restore DAIF from SPSR_EL2
 	eret
 
+	// Shouldn't need this:??
 	stp x0,		x1,		[sp, #-0x10]! 
 	ldr x0, =UART_THR
 	mov x1, #69 //E
 	str x1, [x0]
 	ldp x0,		lr,		[sp], #0x10
-
-
 
 
 unhandled_int:
