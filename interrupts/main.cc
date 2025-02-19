@@ -113,7 +113,7 @@ int main() {
 	// HW::GPIO4->intr_en_H = Gpio::masked_set_bit(Gpio::C(0));
 
 	// Set up GPIO0_C5 as output
-	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
+	HW::GPIO0->config_output(Gpio::Port::C, 5);
 	HW::GPIO0->high(Gpio::Port::C, 5);
 	HW::GPIO0->low(Gpio::Port::C, 5);
 
