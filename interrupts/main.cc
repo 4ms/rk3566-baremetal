@@ -1,7 +1,9 @@
-#include "aarch64_system_reg.hh"
-#include "console.hh"
-#include "gic.hh"
-#include "gpio.hh"
+#include "drivers/aarch64_system_reg.hh"
+#include "drivers/console.hh"
+#include "drivers/gic.hh"
+#include "drivers/gpio.hh"
+#include "drivers/interrupt.hh"
+#include "drivers/irq_init.hh"
 #include <cstdio>
 
 constexpr uint32_t GPIO4IRQ = 69;
@@ -11,63 +13,51 @@ bool BIT(auto reg, unsigned pos) {
 }
 
 int main() {
-	using namespace RockchipPeriph;
-
 	// asm(".equ UART_THR, 0xfe660000\nldr x0, =UART_THR\n mov x1, #70\n str x1, [x0]\n");
 
-	printf("\n");
+	using namespace RockchipPeriph;
+
+	// Dump some useful info:
 	auto el = get_current_el();
-	printf("Current EL: %d\n", el);
+	printf("\nCurrent EL: %d\n", el);
 
 	auto hcr = read_hcr_el2();
 	printf("HCR = %lx: IMO = %u, FMO = %u\n", hcr, BIT(hcr, 4), BIT(hcr, 3));
 
-	// Wake up
-	printf("Waking CPU GICR:\n");
-	HW::GICRedist->Wake();
-
-	uint64_t pmr = 0xFF;
-	printf("Set PMR (min priority) via GICC to %lu\n", pmr);
-	GIC_SetInterfacePriorityMask(pmr);
-	printf("Read PMR back %u\n", GIC_GetInterfacePriorityMask());
-
-	printf("Set BPR (priority point)\n");
-	GIC_SetBinaryPoint(3); // Group priority: [7:3], Subpriority [2:0]
-	GIC_SetBinaryPointGroup1(2);
-	printf("Read back BPR: bpr0:%x bpr1:%x\n", GIC_GetBinaryPoint(), GIC_GetBinaryPointGroup1());
-
-	printf("Set EOI mode to single step\n");
-	GIC_SetEOIModeTwoStep(false);
-
+	printf("VBAR_EL2 = %08lx\n", read_vbar_el2());
+	printf("DAIF = %08x\n", read_daif());
 	auto spsr = read_spsr_el2();
 	printf("spsr = 0x%lx, IRQ masked = %u, FIQ masked = %u\n", spsr, BIT(spsr, 7), BIT(spsr, 6));
 
-	// Enable Group1NS:
-	printf("Enable Group1NS in GICD CTRL\n");
-	GIC_EnableGroup1NS();
+	mdrivlib::IRQ_init();
 
-	auto type = InterruptConfig::Edge;
-	printf("Config GPIO4 as %s\n", type == InterruptConfig::Level ? "level" : "edge");
-	GIC_SetConfiguration(GPIO4IRQ, type);
+	/////
+	// mdrivlib::InterruptControl::set_irq_priority(GPIO4IRQ, 1, 0);
+	// mdrivlib::InterruptControl::enable_irq(GPIO4IRQ, mdrivlib::InterruptControl::EdgeTriggered);
+	mdrivlib::InterruptManager::register_and_start_isr(GPIO4IRQ, 1, 0, [] {
+		//
+		printf("GPIO 4 IRQ\n");
+		HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
+		//
+	});
 
-	printf("Disable IRQ %u\n", GPIO4IRQ);
-	GIC_DisableIRQ(GPIO4IRQ);
+	// auto type = InterruptConfig::Edge;
+	// printf("Config GPIO4 as %s\n", type == InterruptConfig::Level ? "level" : "edge");
+	// GIC_SetConfiguration(GPIO4IRQ, type);
 
-	auto pri = 1 << 0;
-	printf("Set priority for IRQ %u to %u\n", GPIO4IRQ, pri);
-	GIC_SetPriority(GPIO4IRQ, pri);
+	// printf("Disable IRQ %u\n", GPIO4IRQ);
+	// GIC_DisableIRQ(GPIO4IRQ);
 
-	printf("Clear pending IRQ %u:\n", GPIO4IRQ);
-	GIC_ClearPendingIRQ(GPIO4IRQ);
+	// auto pri = 1 << 0;
+	// printf("Set priority for IRQ %u to %u\n", GPIO4IRQ, pri);
+	// GIC_SetPriority(GPIO4IRQ, pri);
 
-	printf("Enable IRQ %u:\n", GPIO4IRQ);
-	GIC_EnableIRQ(GPIO4IRQ);
+	// printf("Clear pending IRQ %u:\n", GPIO4IRQ);
+	// GIC_ClearPendingIRQ(GPIO4IRQ);
 
-	printf("Set Routing mode to 1\n");
-	GIC_SetRoutingMode(1);
-
-	printf("VBAR_EL2 = %08lx\n", read_vbar_el2());
-	printf("DAIF = %08x\n", read_daif());
+	// printf("Enable IRQ %u:\n", GPIO4IRQ);
+	// GIC_EnableIRQ(GPIO4IRQ);
+	/////
 
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
