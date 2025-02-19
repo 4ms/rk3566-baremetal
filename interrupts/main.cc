@@ -53,6 +53,12 @@ int main() {
 
 	dump_sys_state();
 
+	printf("\n******************************\n");
+	printf("IRQ Example\n");
+	printf("Connect GPIO0.C5 to GPIO4.C0 to see nested interrupts working.\n");
+	printf("Fire one-shot with command `oneshot 0`\n");
+	printf("Set GPIO0.C5 high/low with `pin 0` or `pin 1`. There is an interrupt when the pin goes high\n");
+
 	using namespace RockchipPeriph;
 
 	mdrivlib::IRQ_init();
