@@ -7,7 +7,7 @@ SOURCES += ../system/libc/sbrk.cc
 SOURCES += ../system/libc/libc_stub.c
 
 INCLUDES  = -I.
-INCLUDES += -I../drivers
+INCLUDES += -I..
 
 # ignore this static assert failure.
 include ../makefile-common.mk

@@ -1,18 +1,15 @@
-#include "armv8-bare-metal/aarch64.h"
 #include "djembe.hh"
+#include "drivers/aarch64_system_reg.hh"
 #include "gpio.hh"
 #include "mmu.h"
 #include "print.hh"
 #include "uart.hh"
 #include <cstdio>
 
-int main()
-{
+int main() {
 	using namespace RockchipPeriph;
 
 	printf("\n");
-	auto el = get_current_el();
-	printf("Current EL: %d\n", el);
 
 	// Set up GPIO0_C5 as output
 	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));

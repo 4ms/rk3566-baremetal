@@ -1,5 +1,6 @@
-#include "serial.hh"
-#include "uart.hh"
+#include "drivers/print.hh"
+#include "drivers/serial.hh"
+#include "drivers/uart.hh"
 
 #include <array>
 
@@ -13,8 +14,7 @@ std::array<int, 4> arr2{1, 2, 3, 4}; // value init
 int init_value(int x);
 std::array<int, 4> arr3{init_value(0), init_value(1), init_value(2), init_value(3)};
 
-extern "C" int cruntimemain()
-{
+extern "C" int cruntimemain() {
 	print('\n');
 	print("Hello ");
 	print(world);
@@ -48,7 +48,7 @@ extern "C" int cruntimemain()
 
 	print("Press a key to see it echoed back CAPITAL and lowercase:\n");
 	while (1) {
-		auto c = getc();
+		auto c = rk_getc();
 
 		if (c >= 'A' && c <= 'Z') {
 			print(char(c));

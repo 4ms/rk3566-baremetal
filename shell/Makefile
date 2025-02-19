@@ -9,7 +9,7 @@ SOURCES += ../system/libc/sbrk.cc
 SOURCES += ../system/libc/libc_stub.c
 
 INCLUDES  = -I.
-INCLUDES += -I../drivers
+INCLUDES += -I..
 INCLUDES += -I../lib/anchor-console/include
 
 EXTRA_ARCH_CFLAGS = -DCONSOLE_RETURN_KEY=13
