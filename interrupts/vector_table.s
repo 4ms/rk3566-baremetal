@@ -197,21 +197,13 @@ handle_irq:
 
 	ldr x0, [sp], #0x08 	// Pop INTID
 
-	msr icc_eoir0_el1, x0 	// Acknowledge
+	msr icc_eoir1_el1, x0 	// Acknowledge
 
 exit_irq_handler:
 
 	pop_interrupt_context
 
 	eret
-
-	// Shouldn't need this:??
-	stp x0,		x1,		[sp, #-0x10]! 
-	ldr x0, =UART_THR
-	mov x1, #69 //E
-	str x1, [x0]
-	ldp x0,		lr,		[sp], #0x10
-
 
 unhandled_int:
 	b .

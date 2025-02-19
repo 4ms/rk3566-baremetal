@@ -3,7 +3,7 @@ SOURCES =
 SOURCES += startup.s
 SOURCES += main.cc
 SOURCES += interrupt_handler.cc
-SOURCES += vector.S
+SOURCES += vector_table.s
 
 SOURCES += ../drivers/init.cc
 SOURCES += ../drivers/serial.cc
