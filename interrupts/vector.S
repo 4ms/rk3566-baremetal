@@ -8,6 +8,9 @@
 .equ LOWER_EL_A32_SYNC, 7
 .equ LOWER_EL_A32_SERR, 8
 
+
+.equ UART_THR, 0xfe660000
+
 .macro handle_exception exc_type
 	// TODO:
 	mov	x21, #(\exc_type)
@@ -18,7 +21,7 @@
 .endm
 
 
-.section "vector_table"
+.section .vector_table
 	.align 11
 
 	.globl vectors
@@ -83,7 +86,7 @@ vectors:
  * Push x0-x21,lr on to the stack, need 19-21 because they're modified without
  * obeying PCS
  */
-	stp lr,		lr,		[sp, #-0x10]! // Do we use lr?
+	stp x0,		lr,		[sp, #-0x10]! // Do we use lr?
 	stp x0,		x1,		[sp, #-0x10]! 
 	stp x2,		x3,		[sp, #-0x10]!
 	stp x4,		x5,		[sp, #-0x10]!
@@ -166,7 +169,7 @@ vectors:
 	ldp x4,		x5,		[sp], #0x10
 	ldp x2,		x3,		[sp], #0x10
 	ldp x0,		x1,		[sp], #0x10 
-	ldp lr,		lr,		[sp], #0x10
+	ldp x0,		lr,		[sp], #0x10
 
 
 /* Must clear reservations here to ensure consistency with atomic operations */
@@ -174,20 +177,16 @@ vectors:
 .endm
 
 handle_irq:
-	// TODO:
-	// push registers we need for the following (prob just x0, x1)
-
-	str x0,	[sp, #-0x08]! // Store original x0 (since we overwrite it with INTID)
-
-	mrs x0, icc_iar1_el1
-
-	str x0,	[sp, #-0x08]! // Store the INTID
 
 	// TODO
 	// Check if valid or spurious
 	// stack align??
 
 	push_interrupt_context
+
+	mrs x0, icc_iar1_el1
+
+	str x0,	[sp, #-0x08]! // Store the INTID
 
 	// enable interupts: 
 	msr DAIFClr, #0x4
@@ -197,16 +196,25 @@ handle_irq:
 	// disable interupts: 
 	msr DAIFSet, #0x4
 
+	ldr x0, [sp], #0x08 	// Pop INTID
+
+	msr icc_eoir0_el1, x0 	// Acknowledge
+
 	pop_interrupt_context
 
 exit_irq_handler:
-	ldr x0, [sp], #0x08 	// Pop INTID
-	msr icc_eoir0_el1, x0 	// Acknowledge
 
-	ldr x0, [sp], #0x08
 
 	// This will restore DAIF from SPSR_EL2
 	eret
+
+	stp x0,		x1,		[sp, #-0x10]! 
+	ldr x0, =UART_THR
+	mov x1, #69 //E
+	str x1, [x0]
+	ldp x0,		lr,		[sp], #0x10
+
+
 
 
 unhandled_int:
