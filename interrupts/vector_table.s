@@ -188,12 +188,12 @@ handle_irq:
 	str x0,	[sp, #-0x08]! // Store the INTID
 
 	// enable interupts: 
-	msr DAIFClr, #0x4
+	msr DAIFClr, #(1<<1)
 
 	bl ISRHandler
 
 	// disable interupts: 
-	msr DAIFSet, #0x4
+	msr DAIFSet, #(1<<1)
 
 	ldr x0, [sp], #0x08 	// Pop INTID
 
