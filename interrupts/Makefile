@@ -1,4 +1,6 @@
-SOURCES = boot.S
+SOURCES =
+
+SOURCES += startup.s
 SOURCES += main.cc
 SOURCES += interrupt_handler.cc
 SOURCES += vector.S

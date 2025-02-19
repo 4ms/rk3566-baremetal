@@ -41,8 +41,6 @@ _start:					/* normally entered in EL2 from u-boot */
 
 
 // Setup c runtime (bss, statics)
-	// Why does calling __libc_init_array make us freeze with first call to printf()?
-	// bl __libc_init_array
 
 	bl clear_bss
 
@@ -50,7 +48,7 @@ _start:					/* normally entered in EL2 from u-boot */
 	mov x1, #68 //D
 	str x1, [x0]
 
-	bl init_statics
+	bl __libc_init_array
 
 	ldr x0, =UART_THR
 	mov x1, #69 //E
