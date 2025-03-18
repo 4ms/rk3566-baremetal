@@ -68,8 +68,6 @@ static void wrmem_command_handler(const wrmem_args_t *args) {
 }
 
 int main() {
-	printf("AAA\n");
-
 	console_command_register(pin);
 	console_command_register(play);
 	console_command_register(wrmem);
