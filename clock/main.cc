@@ -9,11 +9,35 @@ extern "C" {
 #include "anchor/console/console.h"
 }
 
-CONSOLE_COMMAND_DEF(pin, "pin", CONSOLE_INT_ARG_DEF(duration, "number of cycles"));
-static void pin_command_handler(const pin_args_t *args) {
-	for (int i = 0; i < args->duration; i++) {
-		HW::GPIO0->high(RockchipPeriph::Gpio::Port::C, 5);
-		HW::GPIO0->low(RockchipPeriph::Gpio::Port::C, 5);
+CONSOLE_COMMAND_DEF(gpio,
+					"Toggle GPIOX_YZ n times",
+					CONSOLE_INT_ARG_DEF(GPIOnum, "GPIO# 0-4"),
+					CONSOLE_STR_ARG_DEF(port_letter, "Port Letter A-D"),
+					CONSOLE_INT_ARG_DEF(pin, "Pin 0-7"),
+					CONSOLE_INT_ARG_DEF(pulses, "number of pulses"));
+static void gpio_command_handler(const gpio_args_t *args) {
+	using namespace RockchipPeriph;
+
+	auto gp = args->GPIOnum == 0 ? HW::GPIO0 :
+			  args->GPIOnum == 1 ? HW::GPIO1 :
+			  args->GPIOnum == 2 ? HW::GPIO2 :
+			  args->GPIOnum == 3 ? HW::GPIO3 :
+			  args->GPIOnum == 4 ? HW::GPIO4 :
+								   HW::GPIO0;
+	auto port = args->port_letter[0] == 'A' ? Gpio::Port::A :
+				args->port_letter[0] == 'B' ? Gpio::Port::B :
+				args->port_letter[0] == 'C' ? Gpio::Port::C :
+				args->port_letter[0] == 'D' ? Gpio::Port::D :
+				args->port_letter[0] == 'a' ? Gpio::Port::A :
+				args->port_letter[0] == 'b' ? Gpio::Port::B :
+				args->port_letter[0] == 'c' ? Gpio::Port::C :
+				args->port_letter[0] == 'd' ? Gpio::Port::D :
+											  Gpio::Port::A;
+	gp->dir_output(port, args->pin);
+
+	for (int i = 0; i < args->pulses; i++) {
+		gp->high(port, args->pin);
+		gp->low(port, args->pin);
 	}
 }
 
@@ -68,20 +92,22 @@ static void wrmem_command_handler(const wrmem_args_t *args) {
 }
 
 int main() {
-	console_command_register(pin);
 	console_command_register(play);
 	console_command_register(wrmem);
+	console_command_register(gpio);
 
 	using namespace RockchipPeriph;
 
-	// Set up GPIO0_C5 as output
-	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
-
-	printf("Enabling MMU:\n");
-	enable_mmu();
+	// printf("\nEnabling MMU:\n");
+	// enable_mmu();
 
 	Console::init();
-
+	printf("\n");
+	printf("Common pins to toggle 99 times:\n");
+	printf("gpio 0 C 5 99\n");
+	printf("gpio 4 B 1 99\n");
+	printf("gpio 4 B 4 99\n");
+	printf("gpio 3 D 0 99\n");
 	printf("Ready\n");
 
 	while (true) {
