@@ -27,10 +27,20 @@ int main() {
 
 	mdrivlib::IRQ_init();
 
+	// Pins:
+	// (22) GPIO3_C6: I2S1_MCLK_M1
+	// (12) GPIO3_C7: I2S1_SCLK_TX_M1
+	// (35) GPIO3_D0: I2S1_LRCK_TX_M1
+	// (40) GPIO3_D1: I2S1_SDO0_M1
+	// (38) GPIO3_D2: I2S1_SDI0_M1
+	HW::SYS->gpio3_c_h.write(Rockchip::GPIO3C_IOMUX_H_SEL_6::I2S1_MCLKM1);
+	HW::SYS->gpio3_c_h.write(Rockchip::GPIO3C_IOMUX_H_SEL_7::I2S1_SCLKTXM1);
+	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_0::I2S1_LRCKTXM1);
+	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_1::I2S1_SDO0M1);
+	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_2::I2S1_SDI0M1);
+
 	// mdrivlib::InterruptManager::register_and_start_isr(GPIO4IRQ, 0, 0, [] {
 	// });
-
-	// HW::PMU->gpio0_b_h.write(Rockchip::GPIO0B_IOMUX_H_SEL_7::PWM0_M0);
 
 	// Enable IRQs
 	enable_irq();
