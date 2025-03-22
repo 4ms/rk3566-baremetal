@@ -1,8 +1,8 @@
-#include "drivers/aarch64_system_reg.hh"
 #include "drivers/console.hh"
 #include "drivers/gic.hh"
 #include "drivers/gpio.hh"
 #include "drivers/grf.hh"
+#include "drivers/i2s.hh"
 #include "drivers/interrupt.hh"
 #include "drivers/irq_init.hh"
 #include "drivers/pwm.hh"
@@ -38,6 +38,10 @@ int main() {
 	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_0::I2S1_LRCKTXM1);
 	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_1::I2S1_SDO0M1);
 	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_2::I2S1_SDI0M1);
+
+	// TODO: enable clocks:
+	//		clocks = <&cru MCLK_I2S0_8CH_TX>, <&cru MCLK_I2S0_8CH_RX>, <&cru HCLK_I2S0_8CH>;
+	//		clock-names = "mclk_tx", "mclk_rx", "hclk";
 
 	// mdrivlib::InterruptManager::register_and_start_isr(GPIO4IRQ, 0, 0, [] {
 	// });
