@@ -5,15 +5,14 @@
 #include "drivers/grf.hh"
 #include "drivers/interrupt.hh"
 #include "drivers/irq_init.hh"
+#include "drivers/irqs.hh"
+#include "drivers/masks.hh"
 #include "drivers/pwm.hh"
 #include <cstdio>
 
 extern "C" {
 #include "anchor/console/console.h"
 }
-
-constexpr uint32_t GPIO4IRQ = 69;
-constexpr uint32_t PWM0IRQ = 114;
 
 void dump_sys_state();
 
@@ -34,14 +33,14 @@ static void oneshot_command_handler(const oneshot_args_t *args) {
 CONSOLE_COMMAND_DEF(st, "status", CONSOLE_INT_ARG_DEF(dummy, "Not used"));
 static void st_command_handler(const st_args_t *args) {
 	printf("GPIO4: en: %u IRQstat:%u intr_status:%x (raw: %x)\n",
-		   GIC_GetEnableIRQ(GPIO4IRQ),
-		   GIC_GetIRQStatus(GPIO4IRQ),
+		   GIC_GetEnableIRQ(mdrivlib::IRQ::GPIO4_IRQ),
+		   GIC_GetIRQStatus(mdrivlib::IRQ::GPIO4_IRQ),
 		   HW::GPIO4->intr_status,
 		   HW::GPIO4->intr_rawstatus);
 
 	printf("PWM0: en: %u IRQstat:%u int_en:%x intr_status:%x\n",
-		   GIC_GetEnableIRQ(PWM0IRQ),
-		   GIC_GetIRQStatus(PWM0IRQ),
+		   GIC_GetEnableIRQ(mdrivlib::IRQ::PWM0_IRQ),
+		   GIC_GetIRQStatus(mdrivlib::IRQ::PWM0_IRQ),
 		   HW::PWM0->int_en,
 		   HW::PWM0->intsts);
 }
@@ -67,38 +66,38 @@ int main() {
 	// GPIO4 C0 interrupt
 
 	double m = 1;
-	mdrivlib::InterruptManager::register_and_start_isr(GPIO4IRQ, 0, 0, [&m] {
+	mdrivlib::InterruptManager::register_and_start_isr(mdrivlib::IRQ::GPIO4_IRQ, 0, 0, [&m] {
 		printf("GPIO 4 IRQ\n");
 		for (int i = 0; i < 5; i++) {
 			m = m * 2.;
 			printf("GPIO4: %g\n", m);
 		}
-		HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
+		HW::GPIO4->intr_eoi_H = masked_set_bit(Gpio::C(0));
 	});
 
 	// Set up GPIO4_C0 as input
-	HW::GPIO4->dir_H = Gpio::masked_clr_bit(Gpio::C(0));
+	HW::GPIO4->dir_H = masked_clr_bit(Gpio::C(0));
 
 	// disable interrupt
-	HW::GPIO4->intr_en_H = Gpio::masked_clr_bit(Gpio::C(0));
+	HW::GPIO4->intr_en_H = masked_clr_bit(Gpio::C(0));
 
 	// polarity High
-	HW::GPIO4->intr_pol_H = Gpio::masked_set_bit(Gpio::C(0));
+	HW::GPIO4->intr_pol_H = masked_set_bit(Gpio::C(0));
 
 	// Clear pending
-	HW::GPIO4->intr_eoi_H = Gpio::masked_set_bit(Gpio::C(0));
+	HW::GPIO4->intr_eoi_H = masked_set_bit(Gpio::C(0));
 
 	// Int type = edge
-	HW::GPIO4->intr_type_H = Gpio::masked_set_bit(Gpio::C(0));
+	HW::GPIO4->intr_type_H = masked_set_bit(Gpio::C(0));
 
 	// disable debounce
-	HW::GPIO4->debounce_H = Gpio::masked_clr_bit(Gpio::C(0));
+	HW::GPIO4->debounce_H = masked_clr_bit(Gpio::C(0));
 
 	// // unmask interrupt
-	HW::GPIO4->intr_mask_H = Gpio::masked_clr_bit(Gpio::C(0));
+	HW::GPIO4->intr_mask_H = masked_clr_bit(Gpio::C(0));
 
 	// enable interrupt
-	HW::GPIO4->intr_en_H = Gpio::masked_set_bit(Gpio::C(0));
+	HW::GPIO4->intr_en_H = masked_set_bit(Gpio::C(0));
 
 	////////////////////////////////////////
 	// PWM interrupt
@@ -134,7 +133,7 @@ int main() {
 	printf("\nEnable IRQ\n");
 
 	// Set up GPIO0_C5 as output
-	HW::GPIO0->dir_H = Gpio::masked_set_bit(Gpio::C(5));
+	HW::GPIO0->dir_H = masked_set_bit(Gpio::C(5));
 	HW::GPIO0->low(Gpio::Port::C, 5);
 
 	Console::init();
