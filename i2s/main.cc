@@ -12,6 +12,8 @@
 #include "drivers/pwm.hh"
 #include <cstdio>
 
+#include "../djembe/djembe.hh"
+
 extern "C" {
 #include "anchor/console/console.h"
 }
@@ -51,7 +53,7 @@ int main() {
 	using namespace mdrivlib::RockchipPeriph;
 	using namespace mdrivlib;
 
-	// Set up GPIO0_C5 as output (used for delay)
+	// Set up GPIO0_C5 as output (used for delay and for timing)
 	HW::GPIO0->dir_output(Gpio::Port::C, 5);
 	HW::GPIO0->high(Gpio::Port::C, 5);
 
@@ -111,24 +113,11 @@ int main() {
 	CruGate::i2s1_mclkout_tx_en::write(CruGate::cru_clock_enable);
 
 	// Setup I2S
-	/*
-Default values from linux driver:
-wr 0xfe410000 0x7200000f
-wr 0xfe410004 0x01c8000f
-wr 0xfe410008 0x00001f1f
-wr 0xfe410010 0x001f0000
-wr 0xfe410014 0x01f00000
-wr 0xfe410030 0x00003eff
-wr 0xfe410034 0x00003eff
-wr 0xfe410038 0x00000707
-	*/
-
 	HW::I2S1->XFER = 0;
 	HW::I2S1->CLR = 1;
 	while (HW::I2S1->CLR != 0)
 		;
 
-	constexpr uint32_t BlockSize = 8;
 	// HW::I2S1->enable_DMA();
 	HW::I2S1->tx8_parallel_mode();
 	// HW::I2S1->tdm_rx6_mode();
@@ -140,15 +129,27 @@ wr 0xfe410038 0x00000707
 	// SysGrf::i2s1_mclk_rx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_ext_chip);
 
 	// Setup interrupt
-	unsigned out = 0;
-	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&out] {
-		// printf("I2S1 IRQ\n");
+	constexpr uint32_t BlockSize = 8;
+	MetaModule::DjembeCore dj;
+	unsigned hit_ctr = 0;
+	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
+
+	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&hit_ctr, &dj] {
 		HW::I2S1->clear_tx_underrun();
 
-		for (auto i = 0u; i < BlockSize * 2; i++) {
-			HW::I2S1->TXDR = out;
-			out += 0x100;
+		HW::GPIO0->high(::RockchipPeriph::Gpio::Port::C, 5);
+		for (auto i = 0u; i < BlockSize; i++) {
+			hit_ctr++;
+			dj.set_input(4, hit_ctr % 12'000 == 0 ? 1 : 0);
+			dj.update();
+			float out = dj.get_output(0);
+			auto v = static_cast<int32_t>(out * kOutScaling);
+
+			// L and R: same signal
+			HW::I2S1->TXDR = v;
+			HW::I2S1->TXDR = v;
 		}
+		HW::GPIO0->low(::RockchipPeriph::Gpio::Port::C, 5);
 	});
 
 	HW::I2S1->enable_TX_ISR_with_block_size(BlockSize);

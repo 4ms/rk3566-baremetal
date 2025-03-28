@@ -36,7 +36,7 @@ INCLUDES += -I../drivers/mdrivlib/target/aarch64
 EXTRA_ARCH_CFLAGS += -DRK3566
 
 #####
-OPTFLAG = -O0
+OPTFLAG = -O3
 
 include ../makefile-common.mk
 
