@@ -6,8 +6,8 @@
 #include "drivers/interrupt.hh"
 #include "drivers/irq_init.hh"
 #include "drivers/irqs.hh"
-#include "drivers/masks.hh"
 #include "drivers/pwm.hh"
+#include "drivers/register_access.hh"
 #include <cstdio>
 
 extern "C" {
@@ -59,6 +59,7 @@ int main() {
 	printf("Set GPIO0.C5 high/low with `pin 0` or `pin 1`. There is an interrupt when the pin goes high\n");
 
 	using namespace RockchipPeriph;
+	using namespace mdrivlib;
 
 	mdrivlib::IRQ_init();
 
@@ -72,7 +73,7 @@ int main() {
 			m = m * 2.;
 			printf("GPIO4: %g\n", m);
 		}
-		HW::GPIO4->intr_eoi_H = masked_set_bit(Gpio::C(0));
+		HW::GPIO4->intr_eoi_H = mdrivlib::masked_set_bit(Gpio::C(0));
 	});
 
 	// Set up GPIO4_C0 as input
