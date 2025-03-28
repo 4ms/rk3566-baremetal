@@ -1,10 +1,7 @@
 #include "drivers/console.hh"
-
-#include "drivers/cru_gate.hh"
-
 #include "drivers/cru_clksel.hh"
+#include "drivers/cru_gate.hh"
 #include "drivers/cru_reset.hh"
-#include "drivers/gic.hh"
 #include "drivers/gpio.hh"
 #include "drivers/grf.hh"
 #include "drivers/i2s.hh"
@@ -73,7 +70,7 @@ int main() {
 
 	// Main clock (gpll -> hclkc_gic_audio)
 	CruClksel::hclk_gic_audio_sel::write(CruClksel::hclk_gic_audio_clock_mux::clk_gpll_div_150m);
-	// wr 0xfdd20128 0x0c000400
+	// wr 0xfdd20128 0x0c000000
 	// default is 0x0000 (gpll_150m)
 
 	CruGate::hclk_gic_audio_en::write(CruGate::cru_clock_enable);
@@ -103,19 +100,21 @@ int main() {
 	// wr 0xfdd20144 0x80008000
 	// sets bit 15 -> i2s1_mclkout_rx_sel is xin
 
-	// Set the clock divider for cpll
-	// We will probably need to use the fractional divider to get this more exact
-	// GPLL is 1200MHz,
-	// maybe gpll_100m is 100MHz?
-	// /8 -> 12MHz
-	CruClksel::i2s1_8ch_tx_src_div::write(0x8);
-	// wr 0xfdd2013c 0x007f0064
+	// Set the clock divider for gpll
+	// We will need to use the fractional divider to get this more exact
+	// GPLL is 1200MHz, divide by 98 = 12.245MHz
+	//
+	// in parallel mode with CLKDIV 0x0303:
+	//  97 (0x61) means /98 => MCLK 12.245Hz, SCLK = 3.061MHz, LRCLK = 47.831kHz
+	//  ratios are 256:4:1
+	CruClksel::i2s1_8ch_tx_src_div::write(97);
+	// wr 0xfdd2013c 0x007f00xx
 
 	// CruClksel::i2s1_8ch_rx_src_div::write(0x8);
 	// wr 0xfdd20144 0x007f0064
 
 	// Select the I2S clock source to be gpll
-	// printf("Set I2S clock source\n\r");
+	printf("Set I2S clock source\n");
 	CruClksel::i2s1_8ch_tx_src_sel::write(CruClksel::clk_i2s_8ch_src_sel::clk_gpll_mux);
 	// wr 0xfdd2013c 0x03000000
 
@@ -152,7 +151,7 @@ wr 0xfe410038 0x00000707
 	while (HW::I2S1->CLR != 0)
 		;
 	// HW::I2S1->enable_DMA();
-	HW::I2S1->tdm_tx8_mode();
+	HW::I2S1->tx8_parallel_mode();
 	// HW::I2S1->tdm_rx6_mode();
 	HW::I2S1->master_tx();
 
@@ -164,9 +163,15 @@ wr 0xfe410038 0x00000707
 	// Setup DMA
 
 	// Setup interrupt
-	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [] {
-		printf("I2S1 IRQ\n");
+	unsigned i = 0;
+	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&i] {
+		// printf("I2S1 IRQ\n");
 		HW::I2S1->clear_tx_underrun();
+
+		HW::I2S1->TXDR = i;
+		i += 8;
+		HW::I2S1->TXDR = i;
+		i += 8;
 	});
 
 	// Enable IRQs
