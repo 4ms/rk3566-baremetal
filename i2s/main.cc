@@ -51,7 +51,7 @@ int main() {
 	using namespace mdrivlib::RockchipPeriph;
 	using namespace mdrivlib;
 
-	// Set up GPIO0_C5 as output
+	// Set up GPIO0_C5 as output (used for delay)
 	HW::GPIO0->dir_output(Gpio::Port::C, 5);
 	HW::GPIO0->high(Gpio::Port::C, 5);
 
@@ -64,41 +64,25 @@ int main() {
 
 	// Clocks:
 
-	// alive clock
-	// Pmu::alive_osc_ena::set();
-	// Pmu::alive_osc_ena_sft::set();
-
 	// Main clock (gpll -> hclkc_gic_audio)
 	CruClksel::hclk_gic_audio_sel::write(CruClksel::hclk_gic_audio_clock_mux::clk_gpll_div_150m);
-	// wr 0xfdd20128 0x0c000000
-	// default is 0x0000 (gpll_150m)
 
 	CruGate::hclk_gic_audio_en::write(CruGate::cru_clock_enable);
-	// wr 0xfdd20314 0x00020000
 
 	CruGate::hclk_i2s1_8ch_en::write(CruGate::cru_clock_enable);
-	// wr 0xfdd20314 0x08000000
 
 	Cru::mresetn_i2s1_8ch_tx::set();
 	// Cru::mresetn_i2s1_8ch_rx::set();
-	// wr 0xfdd20414 0x00040004
-	// wr 0xfdd20414 0x00080008
 	delay_us(10);
 	Cru::mresetn_i2s1_8ch_tx::clear();
 	// Cru::mresetn_i2s1_8ch_rx::clear();
-	// wr 0xfdd20414 0x00040000
-	// wr 0xfdd20414 0x00080000
 	delay_us(10);
 
 	// Connect MCLKOUT to I2S1 TX mclk
 	printf("Connect MCLKOUT\n\r");
 	CruClksel::i2s1_mclkout_tx_sel::write(CruClksel::i2s_mclkout_sel::mclk_i2s_8ch);
-	// wr 0xfdd2013c 0x80000000
-	// clears bit 15 -> i2s1_mclkout_tx_sel = mclk_i2s1_8ch_tx
 
 	// CruClksel::i2s1_mclkout_rx_sel::write(CruClksel::i2s_mclkout_sel::xin_osc0_half);
-	// wr 0xfdd20144 0x80008000
-	// sets bit 15 -> i2s1_mclkout_rx_sel is xin
 
 	// Set the clock divider for gpll
 	// We will need to use the fractional divider to get this more exact
@@ -108,34 +92,27 @@ int main() {
 	//  97 (0x61) means /98 => MCLK 12.245Hz, SCLK = 3.061MHz, LRCLK = 47.831kHz
 	//  ratios are 256:4:1
 	CruClksel::i2s1_8ch_tx_src_div::write(97);
-	// wr 0xfdd2013c 0x007f00xx
 
 	// CruClksel::i2s1_8ch_rx_src_div::write(0x8);
-	// wr 0xfdd20144 0x007f0064
 
 	// Select the I2S clock source to be gpll
 	printf("Set I2S clock source\n");
 	CruClksel::i2s1_8ch_tx_src_sel::write(CruClksel::clk_i2s_8ch_src_sel::clk_gpll_mux);
-	// wr 0xfdd2013c 0x03000000
 
 	// CruClksel::i2s1_8ch_rx_src_sel::write(CruClksel::clk_i2s_8ch_src_sel::clk_gpll_mux);
-	// wr 0xfdd20144 0x03000000
 
 	// Select the MCLK source clock to the integral divided clock
 	CruClksel::mclk_i2s1_8ch_tx_sel::write(CruClksel::mclk_i2s_8ch_sel::clk_i2s_8ch_src);
-	// wr 0xfdd2013c 0x0c000000
 
 	// CruClksel::mclk_i2s1_8ch_rx_sel::write(CruClksel::mclk_i2s_8ch_sel::clk_i2s_8ch_src);
-	// wr 0xfdd20144 0x0c000000
 
 	CruGate::mclk_i2s1_8ch_tx_en::write(CruGate::cru_clock_enable);
-	// wr 0xfdd20318 0x04000000
 
 	CruGate::i2s1_mclkout_tx_en::write(CruGate::cru_clock_enable);
-	// wr 0xfdd20318 0x08000000
 
 	// Setup I2S
 	/*
+Default values from linux driver:
 wr 0xfe410000 0x7200000f
 wr 0xfe410004 0x01c8000f
 wr 0xfe410008 0x00001f1f
@@ -150,6 +127,8 @@ wr 0xfe410038 0x00000707
 	HW::I2S1->CLR = 1;
 	while (HW::I2S1->CLR != 0)
 		;
+
+	constexpr uint32_t BlockSize = 8;
 	// HW::I2S1->enable_DMA();
 	HW::I2S1->tx8_parallel_mode();
 	// HW::I2S1->tdm_rx6_mode();
@@ -160,19 +139,19 @@ wr 0xfe410038 0x00000707
 	SysGrf::i2s1_mclk_tx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_cru);
 	// SysGrf::i2s1_mclk_rx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_ext_chip);
 
-	// Setup DMA
-
 	// Setup interrupt
-	unsigned i = 0;
-	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&i] {
+	unsigned out = 0;
+	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&out] {
 		// printf("I2S1 IRQ\n");
 		HW::I2S1->clear_tx_underrun();
 
-		HW::I2S1->TXDR = i;
-		i += 8;
-		HW::I2S1->TXDR = i;
-		i += 8;
+		for (auto i = 0u; i < BlockSize * 2; i++) {
+			HW::I2S1->TXDR = out;
+			out += 0x100;
+		}
 	});
+
+	HW::I2S1->enable_TX_ISR_with_block_size(BlockSize);
 
 	// Enable IRQs
 	printf("Enable IRQ\n");
@@ -189,21 +168,13 @@ wr 0xfe410038 0x00000707
 	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_0::I2S1_LRCKTXM1);
 	HW::SYS->gpio4_a_h.write(Rockchip::GPIO4A_IOMUX_H_SEL_7::I2S1_LRCKRXM1);
 
-	printf("Enable TX XFER\n");
+	printf("Enabling TX XFER\n");
 	HW::I2S1->XFER = 0b01;
-
-	HW::I2S1->enable_ISR();
-
-	// HW::I2S1->TXDR = 0x00111100;
 
 	Console::init();
 
-	// uint32_t i = 0x55AA00;
 	while (true) {
 		Console::process();
-
-		// HW::I2S1->TXDR = i++;
-		// i = HW::I2S1->RXDR;
 
 		asm("nop");
 	}
