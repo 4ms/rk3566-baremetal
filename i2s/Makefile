@@ -28,10 +28,11 @@ INCLUDES += -I../lib/anchor-console/include
 # mdrivlib:
 SOURCES += ../drivers/mdrivlib/target/rk3566/drivers/irq_init.cc
 SOURCES += ../drivers/mdrivlib/target/aarch64/drivers/interrupt_handler.cc
+SOURCES += ../drivers/mdrivlib/target/rk3566/drivers/pin.cc
 
-INCLUDES += -I../drivers/mdrivlib
 INCLUDES += -I../drivers/mdrivlib/target/rk3566
 INCLUDES += -I../drivers/mdrivlib/target/aarch64
+INCLUDES += -I../drivers/mdrivlib
 
 EXTRA_ARCH_CFLAGS += -DRK3566
 

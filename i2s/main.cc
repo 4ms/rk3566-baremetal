@@ -8,6 +8,7 @@
 #include "drivers/interrupt.hh"
 #include "drivers/irq_init.hh"
 #include "drivers/irqs.hh"
+#include "drivers/pin.hh"
 #include "drivers/pmu.hh"
 #include "drivers/pwm.hh"
 #include <cstdio>
@@ -20,10 +21,12 @@ extern "C" {
 
 CONSOLE_COMMAND_DEF(pin, "pin", CONSOLE_INT_ARG_DEF(onoff, "1=on 0=off"));
 static void pin_command_handler(const pin_args_t *args) {
+	using namespace mdrivlib;
+
 	if (args->onoff)
-		HW::GPIO0->high(RockchipPeriph::Gpio::Port::C, 5);
+		GPIO0->high(Gpio::Port::C, 5);
 	else
-		HW::GPIO0->low(RockchipPeriph::Gpio::Port::C, 5);
+		GPIO0->low(Gpio::Port::C, 5);
 }
 
 CONSOLE_COMMAND_DEF(tx,
@@ -35,34 +38,105 @@ static void tx_command_handler(const tx_args_t *args) {
 		HW::I2S1->TXDR = args->data;
 }
 
-void delay_us(uint32_t us) {
-	// 10us -> 80
-	// 1us -> 8
+void delay_us(unsigned us) {
+	using namespace mdrivlib;
+
+	// toggles at 8MHz, so to delay 1us -> 8 toggles
 	for (unsigned i = 0; i < 8u * us; i++) {
-		HW::GPIO0->high(RockchipPeriph::Gpio::Port::C, 5);
-		HW::GPIO0->low(RockchipPeriph::Gpio::Port::C, 5);
+		GPIO0->high(Gpio::Port::C, 5);
+		GPIO0->low(Gpio::Port::C, 5);
 	}
 }
+
+void init_i2s();
+void init_i2s1_clocks();
+void init_i2s1_pins();
 
 int main() {
 	printf("\nStarting I2S example\n");
 	console_command_register(pin);
 	console_command_register(tx);
 
-	using namespace RockchipPeriph;
 	using namespace mdrivlib::RockchipPeriph;
 	using namespace mdrivlib;
 
 	// Set up GPIO0_C5 as output (used for delay and for timing)
-	HW::GPIO0->dir_output(Gpio::Port::C, 5);
-	HW::GPIO0->high(Gpio::Port::C, 5);
+	GPIO0->dir_output(Gpio::Port::C, 5);
+	GPIO0->high(Gpio::Port::C, 5);
 
-	// Pins:
+	Pin reset_pin{GPIO::GPIO0, PinNum::B6, PinMode::Output};
+	reset_pin.low();
+
+	// Connect these Pins:
 	// (22) GPIO3_C6: I2S1_MCLK_M1
 	// (12) GPIO3_C7: I2S1_SCLK_TX_M1
 	// (35) GPIO3_D0: I2S1_LRCK_TX_M1
 	// (40) GPIO3_D1: I2S1_SDO0_M1
 	// (38) GPIO3_D2: I2S1_SDI0_M1
+	//  (3) GPIO0_B6: CODEC_RESET
+
+	init_i2s1_clocks();
+
+	// Setup I2S
+	HW::I2S1->reset();
+
+	// HW::I2S1->enable_DMA();
+	HW::I2S1->tx8_parallel_mode();
+	// HW::I2S1->tdm_rx6_mode();
+	HW::I2S1->master_tx();
+
+	// Setup interrupt
+	constexpr uint32_t BlockSize = 8;
+	MetaModule::DjembeCore dj;
+	unsigned hit_ctr = 0;
+	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
+
+	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&hit_ctr, &dj] {
+		HW::I2S1->clear_tx_underrun();
+
+		GPIO0->high(Gpio::Port::C, 5);
+		for (auto i = 0u; i < BlockSize; i++) {
+			hit_ctr++;
+			dj.set_input(4, hit_ctr % 12'000 == 0 ? 1 : 0);
+			dj.update();
+			float out = dj.get_output(0);
+			auto v = static_cast<int32_t>(out * kOutScaling);
+
+			// L and R: same signal
+			HW::I2S1->TXDR = v;
+			HW::I2S1->TXDR = v;
+		}
+		GPIO0->low(Gpio::Port::C, 5);
+	});
+
+	HW::I2S1->enable_TX_ISR_with_block_size(BlockSize);
+
+	// Enable IRQs
+	printf("Enable IRQ\n");
+	mdrivlib::IRQ_init();
+	enable_irq();
+
+	init_i2s1_pins();
+
+	reset_pin.high();
+	delay_us(313);
+
+	// TODO I2c config
+
+	HW::I2S1->start_tx();
+
+	Console::init();
+
+	while (true) {
+		Console::process();
+
+		asm("nop");
+	}
+}
+
+void init_i2s1_clocks() {
+	using namespace mdrivlib;
+	using namespace mdrivlib::RockchipPeriph;
 
 	// Clocks:
 
@@ -111,55 +185,16 @@ int main() {
 	CruGate::mclk_i2s1_8ch_tx_en::write(CruGate::cru_clock_enable);
 
 	CruGate::i2s1_mclkout_tx_en::write(CruGate::cru_clock_enable);
+}
 
-	// Setup I2S
-	HW::I2S1->XFER = 0;
-	HW::I2S1->CLR = 1;
-	while (HW::I2S1->CLR != 0)
-		;
+void init_i2s1_pins() {
+	using namespace mdrivlib;
+	using namespace mdrivlib::RockchipPeriph;
 
-	// HW::I2S1->enable_DMA();
-	HW::I2S1->tx8_parallel_mode();
-	// HW::I2S1->tdm_rx6_mode();
-	HW::I2S1->master_tx();
-
-	printf("Select TX to MCLK pin\n");
 	SysGrf::i2s1_mclk_sel::write(SysGrf::con1_i2s1_mclk_sel::i2s1_mclk_tx);
 	SysGrf::i2s1_mclk_tx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_cru);
 	// SysGrf::i2s1_mclk_rx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_ext_chip);
 
-	// Setup interrupt
-	constexpr uint32_t BlockSize = 8;
-	MetaModule::DjembeCore dj;
-	unsigned hit_ctr = 0;
-	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
-
-	mdrivlib::InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&hit_ctr, &dj] {
-		HW::I2S1->clear_tx_underrun();
-
-		HW::GPIO0->high(::RockchipPeriph::Gpio::Port::C, 5);
-		for (auto i = 0u; i < BlockSize; i++) {
-			hit_ctr++;
-			dj.set_input(4, hit_ctr % 12'000 == 0 ? 1 : 0);
-			dj.update();
-			float out = dj.get_output(0);
-			auto v = static_cast<int32_t>(out * kOutScaling);
-
-			// L and R: same signal
-			HW::I2S1->TXDR = v;
-			HW::I2S1->TXDR = v;
-		}
-		HW::GPIO0->low(::RockchipPeriph::Gpio::Port::C, 5);
-	});
-
-	HW::I2S1->enable_TX_ISR_with_block_size(BlockSize);
-
-	// Enable IRQs
-	printf("Enable IRQ\n");
-	mdrivlib::IRQ_init();
-	enable_irq();
-
-	printf("Setting pin mux\n");
 	GrfIofunc::i2s1_iomux_sel_m1::write(GrfIofunc::choice_iomux3::m1);
 
 	HW::SYS->gpio3_c_h.write(Rockchip::GPIO3C_IOMUX_H_SEL_7::I2S1_SCLKTXM1);
@@ -168,15 +203,5 @@ int main() {
 	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_2::I2S1_SDI0M1);
 	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_0::I2S1_LRCKTXM1);
 	HW::SYS->gpio4_a_h.write(Rockchip::GPIO4A_IOMUX_H_SEL_7::I2S1_LRCKRXM1);
-
-	printf("Enabling TX XFER\n");
-	HW::I2S1->XFER = 0b01;
-
-	Console::init();
-
-	while (true) {
-		Console::process();
-
-		asm("nop");
-	}
 }
+void init_i2s() {}
