@@ -4,6 +4,7 @@
 #include "drivers/cru_reset.hh"
 #include "drivers/gpio.hh"
 #include "drivers/grf.hh"
+#include "drivers/i2c.hh"
 #include "drivers/i2s.hh"
 #include "drivers/interrupt.hh"
 #include "drivers/irq_init.hh"
@@ -34,8 +35,10 @@ CONSOLE_COMMAND_DEF(tx,
 					CONSOLE_INT_ARG_DEF(data, "data to send"),
 					CONSOLE_INT_ARG_DEF(num, "number of times to send"));
 static void tx_command_handler(const tx_args_t *args) {
+	using namespace mdrivlib;
+
 	for (auto i = 0; i < args->num; i++)
-		HW::I2S1->TXDR = args->data;
+		I2S1->TXDR = args->data;
 }
 
 void delay_us(unsigned us) {
@@ -53,12 +56,11 @@ void init_i2s1_clocks();
 void init_i2s1_pins();
 
 int main() {
+	using namespace mdrivlib;
+
 	printf("\nStarting I2S example\n");
 	console_command_register(pin);
 	console_command_register(tx);
-
-	using namespace mdrivlib::RockchipPeriph;
-	using namespace mdrivlib;
 
 	// Set up GPIO0_C5 as output (used for delay and for timing)
 	GPIO0->dir_output(Gpio::Port::C, 5);
@@ -78,12 +80,12 @@ int main() {
 	init_i2s1_clocks();
 
 	// Setup I2S
-	HW::I2S1->reset();
+	I2S1->reset();
 
 	// HW::I2S1->enable_DMA();
-	HW::I2S1->tx8_parallel_mode();
+	I2S1->tx8_parallel_mode();
 	// HW::I2S1->tdm_rx6_mode();
-	HW::I2S1->master_tx();
+	I2S1->master_tx();
 
 	// Setup interrupt
 	constexpr uint32_t BlockSize = 8;
@@ -92,7 +94,7 @@ int main() {
 	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
 
 	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&hit_ctr, &dj] {
-		HW::I2S1->clear_tx_underrun();
+		I2S1->clear_tx_underrun();
 
 		GPIO0->high(Gpio::Port::C, 5);
 		for (auto i = 0u; i < BlockSize; i++) {
@@ -103,13 +105,13 @@ int main() {
 			auto v = static_cast<int32_t>(out * kOutScaling);
 
 			// L and R: same signal
-			HW::I2S1->TXDR = v;
-			HW::I2S1->TXDR = v;
+			I2S1->TXDR = v;
+			I2S1->TXDR = v;
 		}
 		GPIO0->low(Gpio::Port::C, 5);
 	});
 
-	HW::I2S1->enable_TX_ISR_with_block_size(BlockSize);
+	I2S1->enable_TX_ISR_with_block_size(BlockSize);
 
 	// Enable IRQs
 	printf("Enable IRQ\n");
@@ -122,8 +124,15 @@ int main() {
 	delay_us(313);
 
 	// TODO I2c config
+	// auto i2c = I2C_Hal{I2C2};
+	// I2C2->TXDATA[0] = 0x55;
+	auto tx = TXDATA(I2C2);
+	tx->TXDATA[0] = 0xAA;
+	tx->TXDATA[1] = 0x55;
 
-	HW::I2S1->start_tx();
+	I2C2->MTXCNT = 2;
+
+	I2S1->start_tx();
 
 	Console::init();
 
