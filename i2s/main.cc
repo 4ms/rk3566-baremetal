@@ -4,6 +4,7 @@
 #include "drivers/cru_reset.hh"
 #include "drivers/gpio.hh"
 #include "drivers/grf.hh"
+#include "drivers/grf_iofunc.hh"
 #include "drivers/i2c.hh"
 #include "drivers/i2s.hh"
 #include "drivers/interrupt.hh"
@@ -127,13 +128,31 @@ int main() {
 
 	using namespace mdrivlib::RockchipPeriph;
 
-	// Pins 19 (I2C4_SDA) and 23 (I2C4_SCL)
+	CruClksel::clk_i2c_sel::write(CruClksel::clk_i2c_clock_mux::clk_gpll_div_100m);
+	CruGate::clk_i2c_en::write(CruGate::clock_enable);
+	CruGate::clk_i2c4_en::write(CruGate::clock_enable);
+	CruGate::pclk_i2c4_en::write(CruGate::clock_enable);
+
+	Cru::resetn_i2c4::set();
+	Cru::presetn_i2c4::set();
+	Cru::presetn_i2c4::clear();
+	Cru::resetn_i2c4::clear();
+
+	// Note: CM3 board has pullups on:
+	// GPIO0-B1/B2 (I2C0 for PMIC)
+	// GPIO0-B5/B6 (I2C2_M0)
+	// GPIO4-B4/B5 (I2C2_M1)
+	// GPIO1-A0/A1 (I2C3 for codec)
+
+	// Pins 27 (I2C2_SDA_M1) and 28 (I2C2_SCL_M1)
 	auto i2cconf = I2CConfig{
-		.I2C_periph_num = 4,
-		.SCL = {.gpio = GPIO::GPIO4, .pin = PinNum::B3, .af = (uint8_t)GPIO4B_IOMUX_L_SEL_3::I2C4_SCLM0},
-		.SDA = {.gpio = GPIO::GPIO4, .pin = PinNum::B2, .af = (uint8_t)GPIO4B_IOMUX_L_SEL_2::I2C4_SDAM0},
+		.I2C_periph_num = 2,
+		.SCL = {.gpio = GPIO::GPIO4, .pin = PinNum::B5, .af = (uint8_t)GPIO4B_IOMUX_H_SEL_5::I2C2_SCLM1},
+		.SDA = {.gpio = GPIO::GPIO4, .pin = PinNum::B4, .af = (uint8_t)GPIO4B_IOMUX_H_SEL_4::I2C2_SDAM1},
 		.timing = {100'000},
 	};
+
+	GrfIofunc::i2c2_iomux_sel::write(GrfIofunc::choice_iomux2::m1);
 
 	auto i2c = I2CPeriph{i2cconf};
 	uint8_t data[4] = {0xAA, 0xF0, 0xFF, 0x55};
@@ -160,9 +179,9 @@ void init_i2s1_clocks() {
 	// Main clock (gpll -> hclkc_gic_audio)
 	CruClksel::hclk_gic_audio_sel::write(CruClksel::hclk_gic_audio_clock_mux::clk_gpll_div_150m);
 
-	CruGate::hclk_gic_audio_en::write(CruGate::cru_clock_enable);
+	CruGate::hclk_gic_audio_en::write(CruGate::clock_enable);
 
-	CruGate::hclk_i2s1_8ch_en::write(CruGate::cru_clock_enable);
+	CruGate::hclk_i2s1_8ch_en::write(CruGate::clock_enable);
 
 	Cru::mresetn_i2s1_8ch_tx::set();
 	// Cru::mresetn_i2s1_8ch_rx::set();
@@ -199,9 +218,9 @@ void init_i2s1_clocks() {
 
 	// CruClksel::mclk_i2s1_8ch_rx_sel::write(CruClksel::mclk_i2s_8ch_sel::clk_i2s_8ch_src);
 
-	CruGate::mclk_i2s1_8ch_tx_en::write(CruGate::cru_clock_enable);
+	CruGate::mclk_i2s1_8ch_tx_en::write(CruGate::clock_enable);
 
-	CruGate::i2s1_mclkout_tx_en::write(CruGate::cru_clock_enable);
+	CruGate::i2s1_mclkout_tx_en::write(CruGate::clock_enable);
 }
 
 void init_i2s1_pins() {
@@ -212,7 +231,7 @@ void init_i2s1_pins() {
 	SysGrf::i2s1_mclk_tx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_cru);
 	// SysGrf::i2s1_mclk_rx_oe::write(SysGrf::con2_i2s1_mclk_oe::from_ext_chip);
 
-	GrfIofunc::i2s1_iomux_sel_m1::write(GrfIofunc::choice_iomux3::m1);
+	GrfIofunc::i2s1_iomux_sel::write(GrfIofunc::choice_iomux3::m1);
 
 	SYS_GPIO_IOMUX->gpio3_c_h.write(GPIO3C_IOMUX_H_SEL_7::I2S1_SCLKTXM1);
 	SYS_GPIO_IOMUX->gpio3_c_h.write(GPIO3C_IOMUX_H_SEL_6::I2S1_MCLKM1);
