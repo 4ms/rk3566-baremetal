@@ -51,7 +51,7 @@ void delay_us(unsigned us) {
 	}
 }
 
-void init_i2s();
+void init_i2c();
 void init_i2s1_clocks();
 void init_i2s1_pins();
 
@@ -124,13 +124,21 @@ int main() {
 	delay_us(313);
 
 	// TODO I2c config
-	// auto i2c = I2C_Hal{I2C2};
-	// I2C2->TXDATA[0] = 0x55;
-	auto tx = TXDATA(I2C2);
-	tx->TXDATA[0] = 0xAA;
-	tx->TXDATA[1] = 0x55;
 
-	I2C2->MTXCNT = 2;
+	using namespace mdrivlib::RockchipPeriph;
+
+	// Pins 19 (I2C4_SDA) and 23 (I2C4_SCL)
+	auto i2cconf = I2CConfig{
+		.I2C_periph_num = 4,
+		.SCL = {.gpio = GPIO::GPIO4, .pin = PinNum::B3, .af = (uint8_t)GPIO4B_IOMUX_L_SEL_3::I2C4_SCLM0},
+		.SDA = {.gpio = GPIO::GPIO4, .pin = PinNum::B2, .af = (uint8_t)GPIO4B_IOMUX_L_SEL_2::I2C4_SDAM0},
+		.timing = {100'000},
+	};
+
+	auto i2c = I2CPeriph{i2cconf};
+	uint8_t data[4] = {0xAA, 0xF0, 0xFF, 0x55};
+	i2c.write(0x40, data, 4);
+	///////////
 
 	I2S1->start_tx();
 
@@ -206,11 +214,15 @@ void init_i2s1_pins() {
 
 	GrfIofunc::i2s1_iomux_sel_m1::write(GrfIofunc::choice_iomux3::m1);
 
-	HW::SYS->gpio3_c_h.write(Rockchip::GPIO3C_IOMUX_H_SEL_7::I2S1_SCLKTXM1);
-	HW::SYS->gpio3_c_h.write(Rockchip::GPIO3C_IOMUX_H_SEL_6::I2S1_MCLKM1);
-	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_1::I2S1_SDO0M1);
-	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_2::I2S1_SDI0M1);
-	HW::SYS->gpio3_d_l.write(Rockchip::GPIO3D_IOMUX_L_SEL_0::I2S1_LRCKTXM1);
-	HW::SYS->gpio4_a_h.write(Rockchip::GPIO4A_IOMUX_H_SEL_7::I2S1_LRCKRXM1);
+	SYS_GPIO_IOMUX->gpio3_c_h.write(GPIO3C_IOMUX_H_SEL_7::I2S1_SCLKTXM1);
+	SYS_GPIO_IOMUX->gpio3_c_h.write(GPIO3C_IOMUX_H_SEL_6::I2S1_MCLKM1);
+	SYS_GPIO_IOMUX->gpio3_d_l.write(GPIO3D_IOMUX_L_SEL_1::I2S1_SDO0M1);
+	SYS_GPIO_IOMUX->gpio3_d_l.write(GPIO3D_IOMUX_L_SEL_2::I2S1_SDI0M1);
+	SYS_GPIO_IOMUX->gpio3_d_l.write(GPIO3D_IOMUX_L_SEL_0::I2S1_LRCKTXM1);
+	SYS_GPIO_IOMUX->gpio4_a_h.write(GPIO4A_IOMUX_H_SEL_7::I2S1_LRCKRXM1);
 }
-void init_i2s() {}
+
+void init_i2c() {
+	using namespace mdrivlib;
+	using namespace mdrivlib::RockchipPeriph;
+}
