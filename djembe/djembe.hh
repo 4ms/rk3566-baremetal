@@ -960,7 +960,6 @@ public:
 		freqKnob = float(60.0f);
 
 		paramsNeedUpdating = true;
-		freqNeedUpdating = true;
 	}
 
 	struct alignas(64) float4 {
@@ -974,10 +973,7 @@ public:
 			paramsNeedUpdating = false;
 		}
 
-		if (freqNeedUpdating) {
-			calc_freq();
-			freqNeedUpdating = false;
-		}
+		calc_freq();
 
 		const auto slot = flipper;
 		flipper ^= 1;
@@ -1118,9 +1114,14 @@ public:
 		slowTrig = trigIn > 0.f ? 1.f : 0.f;
 	}
 
-	void calc_freq()
-	{
+	void calc_freq() {
 		float freq = freqCV * freqKnob * samplerateAdjust;
+
+		if (std::abs(freq - slowFreq) < 0.0001f) {
+			slowFreq = freq;
+			return;
+		}
+
 		slowFreq = 0.01f * freq + 0.99f * slowFreq;
 
 		// Coef: a1
@@ -1151,7 +1152,6 @@ public:
 		switch (param_id) {
 			case 0:
 				freqKnob = MathTools::map_value(val, 0.f, 1.f, 20.f, 500.f);
-				freqNeedUpdating = true;
 				break;
 
 			case 1:
@@ -1178,7 +1178,6 @@ public:
 			init_coef();
 			samplerateAdjust = 48000.f / sr;
 			paramsNeedUpdating = true;
-			freqNeedUpdating = true;
 		}
 	}
 
@@ -1189,7 +1188,6 @@ public:
 		switch (input_id) {
 			case 0:
 				freqCV = exp5Table.interp(std::clamp(val, 0.f, 1.0f)); // 1..32
-				freqNeedUpdating = true;
 				break;
 
 			case 1:
@@ -1222,7 +1220,6 @@ public:
 
 private:
 	bool paramsNeedUpdating = false;
-	bool freqNeedUpdating = false;
 	float signalOut = 0;
 	float samplerateAdjust = 1.f;
 
