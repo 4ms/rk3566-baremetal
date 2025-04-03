@@ -3,7 +3,6 @@
 #include "drivers/cru_clksel.hh"
 #include "drivers/cru_gate.hh"
 #include "drivers/cru_reset.hh"
-#include "drivers/delay.hh"
 #include "drivers/gpio.hh"
 #include "drivers/grf.hh"
 #include "drivers/grf_iofunc.hh"
@@ -23,25 +22,30 @@ extern "C" {
 #include "anchor/console/console.h"
 }
 
-CONSOLE_COMMAND_DEF(pin, "pin", CONSOLE_INT_ARG_DEF(onoff, "1=on 0=off"));
-static void pin_command_handler(const pin_args_t *args) {
-	using namespace mdrivlib;
+struct Params {
+	unsigned hit_ctr = 0;
+	unsigned hit_rate = 12'000;
+	std::array<bool, 4> knob_changed{true, true, true, true};
+	std::array<float, 4> knobs{0.5f, 0.5f, 0.5f, 0.5f};
+};
 
-	if (args->onoff)
-		GPIO0->high(Gpio::Port::C, 5);
-	else
-		GPIO0->low(Gpio::Port::C, 5);
+// Used to allow console commands access to commands
+Params *g_params = nullptr;
+
+CONSOLE_COMMAND_DEF(k, "Set a knob percent", CONSOLE_INT_ARG_DEF(knob, "0 to 3"), CONSOLE_INT_ARG_DEF(val, "0 to 100"));
+static void k_command_handler(const k_args_t *args) {
+	if (g_params) {
+		g_params->knobs[args->knob] = std::clamp((float)args->val / 100.f, 0.f, 1.f);
+		printf("Set knob %ld to %f\n", args->knob, g_params->knobs[args->knob]);
+		g_params->knob_changed[args->knob] = true;
+	}
 }
 
-CONSOLE_COMMAND_DEF(tx,
-					"tx",
-					CONSOLE_INT_ARG_DEF(data, "data to send"),
-					CONSOLE_INT_ARG_DEF(num, "number of times to send"));
-static void tx_command_handler(const tx_args_t *args) {
-	using namespace mdrivlib;
-
-	for (auto i = 0; i < args->num; i++)
-		I2S1->TXDR = args->data;
+CONSOLE_COMMAND_DEF(rate, "Period of hits (default = 12)", CONSOLE_INT_ARG_DEF(rate, "1 to 100"));
+static void rate_command_handler(const rate_args_t *args) {
+	if (g_params) {
+		g_params->hit_rate = args->rate * 1000;
+	}
 }
 
 void delay_us(unsigned us) {
@@ -57,13 +61,14 @@ void delay_us(unsigned us) {
 void init_i2c();
 void init_i2s1_clocks();
 void init_i2s1_pins();
+void init_codec();
 
 int main() {
 	using namespace mdrivlib;
 
 	printf("\nStarting I2S example\n");
-	console_command_register(pin);
-	console_command_register(tx);
+	console_command_register(k);
+	console_command_register(rate);
 
 	// Set up GPIO0_C5 as output (used for delay and for timing)
 	GPIO0->dir_output(Gpio::Port::C, 5);
@@ -94,18 +99,37 @@ int main() {
 
 	// Setup interrupt
 	constexpr uint32_t BlockSize = 8;
-	MetaModule::DjembeCore dj;
-	unsigned hit_ctr = 0;
 	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
+	MetaModule::DjembeCore dj;
+	dj.set_samplerate(48000);
+	dj.set_param(0, 0.5f);
+	dj.set_param(1, 0.5f);
+	dj.set_param(2, 0.5f);
+	dj.set_param(3, 0.5f);
+	dj.set_input(0, 0);
+	dj.set_input(1, 0);
+	dj.set_input(2, 0);
+	dj.set_input(3, 0);
+	dj.set_input(4, 0);
 
-	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&hit_ctr, &dj] {
+	Params params;
+	g_params = &params;
+
+	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&dj, &params] {
 		GPIO0->high(Gpio::Port::C, 5);
 
-		I2S1->clear_tx_underrun();
-
 		for (auto i = 0u; i < BlockSize; i++) {
-			hit_ctr++;
-			dj.set_input(4, hit_ctr % 12'000 == 0 ? 1 : 0);
+			params.hit_ctr++;
+
+			for (auto knob_id = 0; auto &changed : params.knob_changed) {
+				if (changed) {
+					dj.set_param(knob_id, params.knobs[knob_id]);
+					changed = false;
+				}
+				knob_id++;
+			}
+
+			dj.set_input(4, params.hit_ctr % params.hit_rate == 0 ? 1 : 0);
 			dj.update();
 			float out = dj.get_output(0);
 			auto v = static_cast<int32_t>(out * kOutScaling);
@@ -127,50 +151,7 @@ int main() {
 	printf("Enable I2S pins\n");
 	init_i2s1_pins();
 
-	////////////////////////////////////////////////////
-	// I2C
-
-	using namespace mdrivlib::RockchipPeriph;
-
-	// Pins 27 (I2C2_SDA_M1) and 28 (I2C2_SCL_M1)
-	auto i2cconf = I2CConfig{
-		.I2C_periph_num = 2,
-		.SCL = {.gpio = GPIO::GPIO4, .pin = PinNum::B5, .af = (uint8_t)GPIO4B_IOMUX_H_SEL_5::I2C2_SCLM1},
-		.SDA = {.gpio = GPIO::GPIO4, .pin = PinNum::B4, .af = (uint8_t)GPIO4B_IOMUX_H_SEL_4::I2C2_SDAM1},
-		.timing = {100'000},
-	};
-
-	// reset_pin.high();
-	// delay_us(313);
-
-	// TODO: should this happen in pin.cc?
-	GrfIofunc::i2c2_iomux_sel::write(GrfIofunc::choice_iomux2::m1);
-
-	auto i2c = I2CPeriph{i2cconf};
-
-	auto sai = SaiConfig{.sai_periphnum = 2,
-						 .tx_block_num = 0,
-						 .rx_block_num = 0,
-						 .mode = SaiConfig::SAIRxTxMode::TXMaster,
-						 .dma_init_tx = {},
-						 .dma_init_rx = {},
-						 .datasize = 24,
-						 .framesize = 32,
-						 .samplerate = 48000,
-						 // TODO: pins
-						 .reset_pin = PinDef{GPIO::GPIO0, PinNum::B6},
-						 .bus_address = 1,
-						 .num_tdm_ins = 2,
-						 .num_tdm_outs = 2};
-
-	printf("Create codec\n");
-	CodecPCM3168 codec{i2c, sai};
-	codec.init();
-
-	// uint8_t data[4] = {0xAA, 0xF0, 0xFF, 0x55};
-	// i2c.write(0x40, data, 4);
-
-	/////////////////////
+	init_codec();
 
 	printf("Start TX\n");
 	I2S1->start_tx();
@@ -255,7 +236,39 @@ void init_i2s1_pins() {
 	SYS_GPIO_IOMUX->gpio4_a_h.write(GPIO4A_IOMUX_H_SEL_7::I2S1_LRCKRXM1);
 }
 
-void init_i2c() {
+void init_codec() {
 	using namespace mdrivlib;
 	using namespace mdrivlib::RockchipPeriph;
+
+	// Pins 27 (I2C2_SDA_M1) and 28 (I2C2_SCL_M1)
+	auto i2cconf = I2CConfig{
+		.I2C_periph_num = 2,
+		.SCL = {.gpio = GPIO::GPIO4, .pin = PinNum::B5, .af = (uint8_t)GPIO4B_IOMUX_H_SEL_5::I2C2_SCLM1},
+		.SDA = {.gpio = GPIO::GPIO4, .pin = PinNum::B4, .af = (uint8_t)GPIO4B_IOMUX_H_SEL_4::I2C2_SDAM1},
+		.timing = {100'000},
+	};
+
+	// TODO: should this happen in pin.cc?
+	GrfIofunc::i2c2_iomux_sel::write(GrfIofunc::choice_iomux2::m1);
+
+	auto i2c = I2CPeriph{i2cconf};
+
+	auto sai = SaiConfig{.sai_periphnum = 2,
+						 .tx_block_num = 0,
+						 .rx_block_num = 0,
+						 .mode = SaiConfig::SAIRxTxMode::TXMaster,
+						 .dma_init_tx = {},
+						 .dma_init_rx = {},
+						 .datasize = 24,
+						 .framesize = 32,
+						 .samplerate = 48000,
+						 // TODO: pins
+						 .reset_pin = PinDef{GPIO::GPIO0, PinNum::B6},
+						 .bus_address = 1,
+						 .num_tdm_ins = 2,
+						 .num_tdm_outs = 2};
+
+	printf("Create codec\n");
+	CodecPCM3168 codec{i2c, sai};
+	codec.init();
 }
