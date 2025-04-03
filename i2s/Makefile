@@ -30,6 +30,8 @@ SOURCES += ../drivers/mdrivlib/target/rk3566/drivers/irq_init.cc
 SOURCES += ../drivers/mdrivlib/target/aarch64/drivers/interrupt_handler.cc
 SOURCES += ../drivers/mdrivlib/target/rk3566/drivers/pin.cc
 SOURCES += ../drivers/mdrivlib/target/rk3566/drivers/i2c.cc
+SOURCES += ../drivers/mdrivlib/target/rk3566/drivers/sai_tdm.cc
+SOURCES += ../drivers/mdrivlib/drivers/codec_PCM3168.cc
 
 INCLUDES += -I../drivers/mdrivlib/target/rk3566
 INCLUDES += -I../drivers/mdrivlib/target/aarch64

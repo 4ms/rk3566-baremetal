@@ -1,7 +1,9 @@
+#include "drivers/codec_PCM3168.hh"
 #include "drivers/console.hh"
 #include "drivers/cru_clksel.hh"
 #include "drivers/cru_gate.hh"
 #include "drivers/cru_reset.hh"
+#include "drivers/delay.hh"
 #include "drivers/gpio.hh"
 #include "drivers/grf.hh"
 #include "drivers/grf_iofunc.hh"
@@ -67,8 +69,10 @@ int main() {
 	GPIO0->dir_output(Gpio::Port::C, 5);
 	GPIO0->high(Gpio::Port::C, 5);
 
-	Pin reset_pin{GPIO::GPIO0, PinNum::B6, PinMode::Output};
-	reset_pin.low();
+	GPIO0->dir_output(Gpio::Port::C, 6);
+
+	// Pin reset_pin{GPIO::GPIO0, PinNum::B6, PinMode::Output};
+	// reset_pin.low();
 
 	// Connect these Pins:
 	// (22) GPIO3_C6: I2S1_MCLK_M1
@@ -95,9 +99,10 @@ int main() {
 	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
 
 	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&hit_ctr, &dj] {
+		GPIO0->high(Gpio::Port::C, 5);
+
 		I2S1->clear_tx_underrun();
 
-		GPIO0->high(Gpio::Port::C, 5);
 		for (auto i = 0u; i < BlockSize; i++) {
 			hit_ctr++;
 			dj.set_input(4, hit_ctr % 12'000 == 0 ? 1 : 0);
@@ -119,30 +124,13 @@ int main() {
 	mdrivlib::IRQ_init();
 	enable_irq();
 
+	printf("Enable I2S pins\n");
 	init_i2s1_pins();
 
-	reset_pin.high();
-	delay_us(313);
-
-	// TODO I2c config
+	////////////////////////////////////////////////////
+	// I2C
 
 	using namespace mdrivlib::RockchipPeriph;
-
-	CruClksel::clk_i2c_sel::write(CruClksel::clk_i2c_clock_mux::clk_gpll_div_100m);
-	CruGate::clk_i2c_en::write(CruGate::clock_enable);
-	CruGate::clk_i2c4_en::write(CruGate::clock_enable);
-	CruGate::pclk_i2c4_en::write(CruGate::clock_enable);
-
-	Cru::resetn_i2c4::set();
-	Cru::presetn_i2c4::set();
-	Cru::presetn_i2c4::clear();
-	Cru::resetn_i2c4::clear();
-
-	// Note: CM3 board has pullups on:
-	// GPIO0-B1/B2 (I2C0 for PMIC)
-	// GPIO0-B5/B6 (I2C2_M0)
-	// GPIO4-B4/B5 (I2C2_M1)
-	// GPIO1-A0/A1 (I2C3 for codec)
 
 	// Pins 27 (I2C2_SDA_M1) and 28 (I2C2_SCL_M1)
 	auto i2cconf = I2CConfig{
@@ -152,13 +140,39 @@ int main() {
 		.timing = {100'000},
 	};
 
+	// reset_pin.high();
+	// delay_us(313);
+
+	// TODO: should this happen in pin.cc?
 	GrfIofunc::i2c2_iomux_sel::write(GrfIofunc::choice_iomux2::m1);
 
 	auto i2c = I2CPeriph{i2cconf};
-	uint8_t data[4] = {0xAA, 0xF0, 0xFF, 0x55};
-	i2c.write(0x40, data, 4);
-	///////////
 
+	auto sai = SaiConfig{.sai_periphnum = 2,
+						 .tx_block_num = 0,
+						 .rx_block_num = 0,
+						 .mode = SaiConfig::SAIRxTxMode::TXMaster,
+						 .dma_init_tx = {},
+						 .dma_init_rx = {},
+						 .datasize = 24,
+						 .framesize = 32,
+						 .samplerate = 48000,
+						 // TODO: pins
+						 .reset_pin = PinDef{GPIO::GPIO0, PinNum::B6},
+						 .bus_address = 1,
+						 .num_tdm_ins = 2,
+						 .num_tdm_outs = 2};
+
+	printf("Create codec\n");
+	CodecPCM3168 codec{i2c, sai};
+	codec.init();
+
+	// uint8_t data[4] = {0xAA, 0xF0, 0xFF, 0x55};
+	// i2c.write(0x40, data, 4);
+
+	/////////////////////
+
+	printf("Start TX\n");
 	I2S1->start_tx();
 
 	Console::init();
