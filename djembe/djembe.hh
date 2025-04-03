@@ -17,9 +17,15 @@ public:
 	virtual void set_input(int input_id, float val) = 0;
 
 	virtual float get_output(int output_id) const = 0;
-	virtual float get_led_brightness(int led_id) const { return 0; }
-	virtual size_t get_display_text(int display_id, std::span<char> text) { return 0; }
-	virtual float get_param(int param_id) const { return 0; }
+	virtual float get_led_brightness(int led_id) const {
+		return 0;
+	}
+	virtual size_t get_display_text(int display_id, std::span<char> text) {
+		return 0;
+	}
+	virtual float get_param(int param_id) const {
+		return 0;
+	}
 
 	virtual void mark_all_inputs_unpatched() {}
 	virtual void mark_input_unpatched(int input_id) {}
@@ -44,16 +50,14 @@ template<typename T, unsigned int Size, typename PhaseT = float>
 struct InterpArray {
 	std::array<T, Size> data;
 
-	constexpr T closest_wrap(const PhaseT phase) const
-	{
+	constexpr T closest_wrap(const PhaseT phase) const {
 		auto idx = static_cast<unsigned int>(phase * Size);
 		while (idx >= Size)
 			idx -= Size;
 		return data[idx];
 	}
 
-	constexpr T interp_by_index(const PhaseT index) const
-	{
+	constexpr T interp_by_index(const PhaseT index) const {
 		auto idx0 = static_cast<unsigned int>(index);
 		const auto phase = index - static_cast<PhaseT>(idx0);
 		const unsigned int idx1 = (idx0 == (Size - 1)) ? 0 : idx0 + 1;
@@ -62,8 +66,7 @@ struct InterpArray {
 		return (data[idx1] * phase) + (data[idx0] * ((PhaseT)(1.) - phase));
 	}
 
-	constexpr T interp(const PhaseT phase) const
-	{
+	constexpr T interp(const PhaseT phase) const {
 		const PhaseT index = phase * (Size - 1);
 		return interp_by_index(index);
 	}
@@ -801,14 +804,17 @@ const InterpArray<float, 2048> exp5Table = {
 
 namespace MathTools
 {
-static inline float cos_close(float x) { return sinTable.closest_wrap((x / (2.f * M_PIF)) + 0.25f); }
+static inline float cos_close(float x) {
+	return sinTable.closest_wrap((x / (2.f * M_PIF)) + 0.25f);
+}
 
-static inline float tan_close(float x) { return tanTable.closest_wrap(x / M_PIF); }
+static inline float tan_close(float x) {
+	return tanTable.closest_wrap(x / M_PIF);
+}
 
 template<typename Tval, typename Tin, typename Tout>
 static constexpr Tout
-map_value(const Tval x, const Tin in_min, const Tin in_max, const Tout out_min, const Tout out_max)
-{
+map_value(const Tval x, const Tin in_min, const Tin in_max, const Tout out_min, const Tout out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 } // namespace MathTools
@@ -914,8 +920,7 @@ class DjembeCore : public CoreProcessor {
 	float SAMPLERATE = 48000;
 
 public:
-	DjembeCore()
-	{
+	DjembeCore() {
 		init_coef();
 
 		// Todo: Combine these loops
@@ -966,8 +971,7 @@ public:
 		float v[4];
 	};
 
-	void update() override
-	{
+	void update() override {
 		if (paramsNeedUpdating) {
 			update_params();
 			paramsNeedUpdating = false;
@@ -1092,8 +1096,7 @@ public:
 		fRec20212223[prev].v[3] = tf20212223.v[3];
 	}
 
-	void update_params()
-	{
+	void update_params() {
 		strike0 = std::clamp(strikeCV + strikeKnob, 0.f, 1.f);
 		strike1 = MathTools::tan_close(fConst1 * ((15000.0f * strike0) + 500.0f));
 		strike2 = 1.0f / strike1;
@@ -1117,7 +1120,7 @@ public:
 	void calc_freq() {
 		float freq = freqCV * freqKnob * samplerateAdjust;
 
-		if (std::abs(freq - slowFreq) < 0.0001f) {
+		if (std::abs(freq - slowFreq) < 0.003f) {
 			slowFreq = freq;
 			return;
 		}
@@ -1147,8 +1150,7 @@ public:
 		fSlow35363738.v[3] = (fConst62 * MathTools::cos_close((fConst5 * (slowFreq + 3800.0f))));
 	}
 
-	void set_param(int param_id, float val) override
-	{
+	void set_param(int param_id, float val) override {
 		switch (param_id) {
 			case 0:
 				freqKnob = MathTools::map_value(val, 0.f, 1.f, 20.f, 500.f);
@@ -1171,8 +1173,7 @@ public:
 		}
 	}
 
-	void set_samplerate(const float sr) override
-	{
+	void set_samplerate(const float sr) override {
 		if (sr > 0.f && sr != SAMPLERATE) {
 			SAMPLERATE = sr;
 			init_coef();
@@ -1181,8 +1182,7 @@ public:
 		}
 	}
 
-	void set_input(int input_id, float v) override
-	{
+	void set_input(int input_id, float v) override {
 		float val = v / CvRangeVolts;
 
 		switch (input_id) {
@@ -1212,8 +1212,7 @@ public:
 		}
 	}
 
-	float get_output(const int output_id) const override
-	{
+	float get_output(const int output_id) const override {
 		constexpr float algorithmScale = 8.f;
 		return signalOut * (outputScalingVolts / algorithmScale);
 	}
@@ -1319,8 +1318,7 @@ private:
 	float fConst61{};
 	float fConst62{};
 
-	void init_coef()
-	{
+	void init_coef() {
 		fConst1 = (3.14159274f / SAMPLERATE);
 		fConst2 = (0.00200000009f * SAMPLERATE);
 		fConst3 = std::pow(0.00100000005f, (1.66666663f / SAMPLERATE));
