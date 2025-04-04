@@ -53,8 +53,8 @@ void delay_us(unsigned us) {
 
 	// toggles at 8MHz, so to delay 1us -> 8 toggles
 	for (unsigned i = 0; i < 8u * us; i++) {
-		GPIO0->high(Gpio::Port::C, 5);
-		GPIO0->low(Gpio::Port::C, 5);
+		GPIO0->high(Gpio::Port::C, 6);
+		GPIO0->low(Gpio::Port::C, 6);
 	}
 }
 
@@ -70,9 +70,13 @@ int main() {
 	console_command_register(k);
 	console_command_register(rate);
 
+	mdrivlib::RockchipPeriph::Cru::Apll::fbdiv::write(0x44);
+	mdrivlib::RockchipPeriph::Cru::Apll::postdiv1::write(0x1);
+	mdrivlib::RockchipPeriph::Cru::Apll::bypass::clear();
+
 	// Set up GPIO0_C5 as output (used for delay and for timing)
 	GPIO0->dir_output(Gpio::Port::C, 5);
-	GPIO0->high(Gpio::Port::C, 5);
+	GPIO0->low(Gpio::Port::C, 5);
 
 	GPIO0->dir_output(Gpio::Port::C, 6);
 
@@ -92,51 +96,100 @@ int main() {
 	// Setup I2S
 	I2S1->reset();
 
-	// HW::I2S1->enable_DMA();
 	I2S1->tx8_parallel_mode();
-	// HW::I2S1->tdm_rx6_mode();
+	I2S1->rx_stereo_mode();
 	I2S1->master_tx();
 
 	// Setup interrupt
-	constexpr uint32_t BlockSize = 8;
-	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
-	MetaModule::DjembeCore dj;
-	dj.set_samplerate(48000);
-	dj.set_param(0, 0.5f);
-	dj.set_param(1, 0.5f);
-	dj.set_param(2, 0.5f);
-	dj.set_param(3, 0.5f);
-	dj.set_input(0, 0);
-	dj.set_input(1, 0);
-	dj.set_input(2, 0);
-	dj.set_input(3, 0);
-	dj.set_input(4, 0);
-
 	Params params;
 	g_params = &params;
 
-	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&dj, &params] {
+	constexpr uint32_t BlockSize = 8;
+	constexpr float kOutScaling = static_cast<float>(0x7F'FFFF);
+
+	std::array<MetaModule::DjembeCore, 2> djs;
+	// MetaModule::DjembeCore dj;
+
+	for (auto i = 0u; auto &dj : djs) {
+		dj.set_samplerate(48000);
+		dj.set_param(0, float(i) / float(djs.size()) + 0.1f);
+		dj.set_param(1, 0.5f);
+		dj.set_param(2, 0.5f);
+		dj.set_param(3, 0.5f);
+		dj.set_input(0, 0);
+		dj.set_input(1, 0);
+		dj.set_input(2, 0);
+		dj.set_input(3, 0);
+		dj.set_input(4, 0);
+		i++;
+	}
+
+	// with one or two writes to TXDR: blocks of 8 take 2.78us = 1.6% load
+	// Reading RXDR twice, and writing TXDR twice; 7.78us = 4.65% load
+
+	// with USE_I2S_RX:
+	// # djembes  load
+	// 2  5.87%    2.9% ea
+	// 4  8.80%    2.2% ea
+	// 8  14.62%
+	// 16 26.4%
+	// 20 40%   2.0% ea
+	// 24  two 94us pulses in a row
+
+	// without RX:
+	// 20 37%   1.85% each
+	//
+	// without RX, but with two loops
+	// 2   3.2%
+	// 8  11.9%
+	// 24  53%
+	// 32  84%   2.625% each
+
+	static std::array<int32_t, BlockSize * 2> outbuf;
+
+	InterruptManager::register_and_start_isr(IRQ::I2S1_8CH_IRQ, 0, 0, [&djs, &params] {
 		GPIO0->high(Gpio::Port::C, 5);
+
+		for (auto i = 0u; i < BlockSize; i++) {
+			I2S1->TXDR = outbuf[i * 2];
+			I2S1->TXDR = outbuf[i * 2 + 1];
+		}
 
 		for (auto i = 0u; i < BlockSize; i++) {
 			params.hit_ctr++;
 
 			for (auto knob_id = 0; auto &changed : params.knob_changed) {
 				if (changed) {
-					dj.set_param(knob_id, params.knobs[knob_id]);
-					changed = false;
+
+					for (auto &dj : djs) {
+						dj.set_param(knob_id, params.knobs[knob_id]);
+						changed = false;
+					}
+
+					knob_id++;
 				}
-				knob_id++;
 			}
 
-			dj.set_input(4, params.hit_ctr % params.hit_rate == 0 ? 1 : 0);
-			dj.update();
-			float out = dj.get_output(0);
+			float out = 0;
+			for (auto dj_idx = 0u; auto &dj : djs) {
+				unsigned hit_time = dj_idx * params.hit_rate / djs.size();
+				// unsigned hit_time = params.hit_rate;
+				dj.set_input(4, params.hit_ctr % hit_time == 0 ? 1 : 0);
+
+				dj.update();
+
+				out += dj.get_output(0); // / djs.size();
+
+				dj_idx++;
+			}
+
 			auto v = static_cast<int32_t>(out * kOutScaling);
 
-			// L and R: same signal
-			I2S1->TXDR = v;
-			I2S1->TXDR = v;
+			// 			auto inL = I2S1->RXDR;
+			// 			auto inR = I2S1->RXDR;
+			// 			I2S1->TXDR = inL + inR;
+			outbuf[i * 2] = v;
+			outbuf[i * 2 + 1] = v;
 		}
 		GPIO0->low(Gpio::Port::C, 5);
 	});
@@ -154,7 +207,7 @@ int main() {
 	init_codec();
 
 	printf("Start TX\n");
-	I2S1->start_tx();
+	I2S1->start_txrx();
 
 	Console::init();
 
@@ -179,16 +232,15 @@ void init_i2s1_clocks() {
 	CruGate::hclk_i2s1_8ch_en::write(CruGate::clock_enable);
 
 	Cru::mresetn_i2s1_8ch_tx::set();
-	// Cru::mresetn_i2s1_8ch_rx::set();
+	Cru::mresetn_i2s1_8ch_rx::set();
 	delay_us(10);
 	Cru::mresetn_i2s1_8ch_tx::clear();
-	// Cru::mresetn_i2s1_8ch_rx::clear();
+	Cru::mresetn_i2s1_8ch_rx::clear();
 	delay_us(10);
 
 	// Connect MCLKOUT to I2S1 TX mclk
 	printf("Connect MCLKOUT\n\r");
 	CruClksel::i2s1_mclkout_tx_sel::write(CruClksel::i2s_mclkout_sel::mclk_i2s_8ch);
-
 	// CruClksel::i2s1_mclkout_rx_sel::write(CruClksel::i2s_mclkout_sel::xin_osc0_half);
 
 	// Set the clock divider for gpll
@@ -199,19 +251,16 @@ void init_i2s1_clocks() {
 	//  97 (0x61) means /98 => MCLK 12.245Hz, SCLK = 3.061MHz, LRCLK = 47.831kHz
 	//  ratios are 256:4:1
 	CruClksel::i2s1_8ch_tx_src_div::write(97);
-
-	// CruClksel::i2s1_8ch_rx_src_div::write(0x8);
+	CruClksel::i2s1_8ch_rx_src_div::write(97);
 
 	// Select the I2S clock source to be gpll
 	printf("Set I2S clock source\n");
 	CruClksel::i2s1_8ch_tx_src_sel::write(CruClksel::clk_i2s_8ch_src_sel::clk_gpll_mux);
-
-	// CruClksel::i2s1_8ch_rx_src_sel::write(CruClksel::clk_i2s_8ch_src_sel::clk_gpll_mux);
+	CruClksel::i2s1_8ch_rx_src_sel::write(CruClksel::clk_i2s_8ch_src_sel::clk_gpll_mux);
 
 	// Select the MCLK source clock to the integral divided clock
 	CruClksel::mclk_i2s1_8ch_tx_sel::write(CruClksel::mclk_i2s_8ch_sel::clk_i2s_8ch_src);
-
-	// CruClksel::mclk_i2s1_8ch_rx_sel::write(CruClksel::mclk_i2s_8ch_sel::clk_i2s_8ch_src);
+	CruClksel::mclk_i2s1_8ch_rx_sel::write(CruClksel::mclk_i2s_8ch_sel::clk_i2s_8ch_src);
 
 	CruGate::mclk_i2s1_8ch_tx_en::write(CruGate::clock_enable);
 
