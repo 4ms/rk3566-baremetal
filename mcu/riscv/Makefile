@@ -10,7 +10,7 @@ AS=riscv-none-elf-as
 ASFLAGS=-march=rv32imc -mabi=ilp32 -misa-spec=2.2
 
 # SCR1 in RK3566 is RV32IMC
-CFLAGS=-static -march=rv32imc -mabi=ilp32 -misa-spec=2.2 -nostdlib -mstrict-align -fno-common -Wall -nostartfiles -lgcc
+CFLAGS=-static -march=rv32imc -mabi=ilp32 -misa-spec=2.2 -nostdlib -mstrict-align -fno-common -Wall -nostartfiles -lgcc -O3
 # linker will default to rv64gc/lp64d if you don't specify the exact arch and ABI
 # `-melf32lriscv` is from https://reddit.com/r/RISCV/comments/t2vl7e/gcc_linker_for_rv32i/
 
